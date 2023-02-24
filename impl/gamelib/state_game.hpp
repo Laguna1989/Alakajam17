@@ -3,6 +3,8 @@
 
 #include <box2dwrapper/box2d_world_interface.hpp>
 #include <game_state.hpp>
+#include <grid.hpp>
+#include <vector.hpp>
 #include <memory>
 #include <vector>
 
@@ -24,19 +26,19 @@ private:
     std::shared_ptr<jt::Vignette> m_vignette;
     std::shared_ptr<Hud> m_hud;
     std::shared_ptr<jt::Box2DWorldInterface> m_world { nullptr };
+    std::shared_ptr<Grid> m_grid { nullptr };
 
     bool m_running { true };
     bool m_hasEnded { false };
 
     int m_scoreP1 { 0 };
-    int m_scoreP2 { 0 };
 
     void doInternalCreate() override;
     void doInternalUpdate(float const elapsed) override;
     void doInternalDraw() const override;
 
     void endGame();
-    void createPlayer();
+    void createGrid();
 };
 
 #endif

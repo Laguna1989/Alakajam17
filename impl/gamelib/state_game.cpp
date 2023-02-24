@@ -6,7 +6,6 @@
 #include <hud/hud.hpp>
 #include <screeneffects/vignette.hpp>
 #include <shape.hpp>
-#include <sprite.hpp>
 #include <state_menu.hpp>
 #include <tweens/tween_alpha.hpp>
 
@@ -26,7 +25,7 @@ void StateGame::doInternalCreate()
     m_background->setIgnoreCamMovement(true);
     m_background->update(0.0f);
 
-    createPlayer();
+    createGrid();
 
     m_vignette = std::make_shared<jt::Vignette>(GP::GetScreenSize());
     add(m_vignette);
@@ -37,7 +36,11 @@ void StateGame::doInternalCreate()
     setAutoDraw(false);
 }
 
-void StateGame::createPlayer() { }
+void StateGame::createGrid()
+{
+    m_grid = std::make_shared<Grid>();
+    add(m_grid);
+}
 
 void StateGame::doInternalUpdate(float const elapsed)
 {
@@ -48,11 +51,9 @@ void StateGame::doInternalUpdate(float const elapsed)
             m_scoreP1++;
             m_hud->getObserverScoreP1()->notify(m_scoreP1);
         }
-        if (getGame()->input().keyboard()->justPressed(jt::KeyCode::D)) {
-            m_scoreP2++;
-            m_hud->getObserverScoreP2()->notify(m_scoreP2);
-        }
     }
+
+    //    m_grid->update(elapsed);
 
     m_background->update(elapsed);
     m_vignette->update(elapsed);
@@ -62,6 +63,8 @@ void StateGame::doInternalDraw() const
 {
     m_background->draw(renderTarget());
     drawObjects();
+    m_grid->draw();
+
     m_vignette->draw();
     m_hud->draw();
 }
