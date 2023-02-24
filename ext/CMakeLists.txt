@@ -1,0 +1,16 @@
+message(STATUS "Add FetchContent")
+include(FetchContent)
+
+message(STATUS "Fetching external libraries started")
+add_subdirectory(openalpp)
+add_subdirectory(tileson)
+add_subdirectory(box2d)
+add_subdirectory(imgui)
+if (USE_SFML)
+    add_subdirectory(sfml)
+    add_subdirectory(imgui-sfml)
+else ()
+    add_subdirectory(imgui-sdl)
+endif ()
+
+message(STATUS "Fetching external libraries done")
