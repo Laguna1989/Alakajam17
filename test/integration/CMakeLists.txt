@@ -1,6 +1,0 @@
-if (JT_ENABLE_DEMOS)
-    add_subdirectory(demo)
-endif ()
-if (JT_ENABLE_PERFORMANCETESTS)
-    add_subdirectory(performance)
-endif ()

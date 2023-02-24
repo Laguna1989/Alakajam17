@@ -37,11 +37,7 @@ void StateGame::doInternalCreate()
     setAutoDraw(false);
 }
 
-void StateGame::createPlayer()
-{
-    m_player = std::make_shared<Player>(m_world, *this);
-    add(m_player);
-}
+void StateGame::createPlayer() { }
 
 void StateGame::doInternalUpdate(float const elapsed)
 {
