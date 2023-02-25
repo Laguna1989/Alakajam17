@@ -21,6 +21,19 @@ void Grid::doUpdate(float const elapsed)
     }
 
     highlightTileUnderCursor();
+
+    if (getGame()->input().keyboard()->pressed(jt::KeyCode::LControl)
+        && getGame()->input().keyboard()->justPressed(jt::KeyCode::C)) {
+        switchToNextColor();
+    }
+}
+
+void Grid::switchToNextColor()
+{
+    m_currentColorIndex++;
+    if (m_currentColorIndex >= m_allColors.size()) {
+        m_currentColorIndex = 0u;
+    }
 }
 
 void Grid::handleSpawnConnectionInput()
@@ -36,20 +49,28 @@ void Grid::handleSpawnConnectionInput()
 
             m_currentShape = std::make_shared<jt::Shape>();
             m_currentShape->makeRect(jt::Vector2f { 100.0f, 10.0f }, textureManager());
-            m_shapeStartNode = possibleTile;
-            if (!m_shapeStartNode) {
+            m_startNode = possibleTile;
+            if (!m_startNode) {
                 return;
             }
-            m_currentShape->setPosition(m_shapeStartNode->getDrawable()->getPosition());
+            m_currentShape->setPosition(m_startNode->getDrawable()->getPosition());
             m_currentShape->setOrigin(jt::Vector2f { 5.0f, 5.0f });
         } else {
             if (m_currentShape->getScale().x == 0.0f || m_currentShape->getScale().y == 0.0f) {
                 return;
             }
-            if (!m_shapeStartNode) {
+            if (!m_startNode) {
                 return;
             }
-            if (m_shapeStartNode == m_shapeEndNode) {
+            if (m_startNode == m_endNode) {
+                return;
+            }
+            auto const startColor = m_startNode->getDrawable()->getColor();
+            if (startColor != jt::colors::White && startColor != getCurrentColor()) {
+                return;
+            }
+            auto const endColor = m_endNode->getDrawable()->getColor();
+            if (endColor != jt::colors::White && endColor != getCurrentColor()) {
                 return;
             }
 
@@ -61,24 +82,33 @@ void Grid::handleSpawnConnectionInput()
 void Grid::spawnConnection()
 {
     std::string startPosString = "("
-        + std::to_string(static_cast<int>(m_shapeStartNode->getNode()->getTilePosition().x)) + ", "
-        + std::to_string(static_cast<int>(m_shapeStartNode->getNode()->getTilePosition().y)) + ")";
+        + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().x)) + ", "
+        + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().y)) + ")";
     std::string endPosString = "("
-        + std::to_string(static_cast<int>(m_shapeEndNode->getNode()->getTilePosition().x)) + ", "
-        + std::to_string(static_cast<int>(m_shapeEndNode->getNode()->getTilePosition().y)) + ")";
+        + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().x)) + ", "
+        + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().y)) + ")";
     getGame()->logger().info(
         "Spawn connection between " + startPosString + " - " + endPosString, { "grid" });
+
+    // create pathfinding connection
+    m_startNode->getNode()->addNeighbour(m_endNode->getNode());
+    m_endNode->getNode()->addNeighbour(m_startNode->getNode());
+
+    // color nodes
+    m_startNode->getDrawable()->setColor(getCurrentColor());
+    m_endNode->getDrawable()->setColor(getCurrentColor());
+
     m_shapes.push_back(m_currentShape);
-    m_currentShape->setColor(jt::colors::Blue);
+    m_currentShape->setColor(getCurrentColor());
 
     m_currentShape = nullptr;
-    m_shapeStartNode = nullptr;
-    m_shapeEndNode = nullptr;
+    m_startNode = nullptr;
+    m_endNode = nullptr;
 }
 
 std::shared_ptr<jt::tilemap::TileNode> Grid::getPossibleEndTile(jt::Vector2f const& pos)
 {
-    if (!m_shapeStartNode) {
+    if (!m_startNode) {
         return nullptr;
     }
     auto const possibleEndTile
@@ -87,7 +117,7 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getPossibleEndTile(jt::Vector2f con
         return nullptr;
     }
     auto const endTilepos = possibleEndTile->getNode()->getTilePosition();
-    auto const startTilepos = m_shapeStartNode->getNode()->getTilePosition();
+    auto const startTilepos = m_startNode->getNode()->getTilePosition();
 
     auto const distX = static_cast<int>(endTilepos.x) - static_cast<int>(startTilepos.x);
     auto const distY = static_cast<int>(endTilepos.y) - static_cast<int>(startTilepos.y);
@@ -115,25 +145,25 @@ void Grid::updateCurrentShapeIfSet(float const elapsed)
         = getPossibleEndTile(getGame()->input().mouse()->getMousePositionWorld());
 
     if (!possibleEndTile) {
-        if (!m_shapeStartNode) {
+        if (!m_startNode) {
             return;
         }
-        m_shapeEndNode = m_shapeStartNode;
+        m_endNode = m_startNode;
         m_currentShape->setScale(jt::Vector2f { 0.0f, 0.0f });
         return;
     }
 
-    m_shapeEndNode = possibleEndTile;
-    if (!m_shapeStartNode) {
+    m_endNode = possibleEndTile;
+    if (!m_startNode) {
         return;
     }
-    auto startNodePosition = m_shapeStartNode->getDrawable()->getPosition();
-    if (m_shapeEndNode == m_shapeStartNode) {
+    auto startNodePosition = m_startNode->getDrawable()->getPosition();
+    if (m_endNode == m_startNode) {
         m_currentShape->setScale(jt::Vector2f { 0.0f, 0.0f });
         return;
     }
 
-    auto const dif = m_shapeEndNode->getDrawable()->getPosition() - startNodePosition;
+    auto const dif = m_endNode->getDrawable()->getPosition() - startNodePosition;
     auto const dist = jt::MathHelper::length(dif);
     auto scaleX = dist / 100;
 
@@ -228,3 +258,5 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getClosestTileTo(jt::Vector2f const
     }
     return tile;
 }
+
+jt::Color Grid::getCurrentColor() const { return m_allColors.at(m_currentColorIndex); }
