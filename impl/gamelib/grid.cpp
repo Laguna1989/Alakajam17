@@ -72,7 +72,7 @@ void Grid::createPrimaryHub()
     }
 
     hub->setHeight(9999999);
-    hub->m_riverColor = getCurrentColor();
+    hub->m_riverColor = getCurrentSpawnColor();
     m_primaryHubs.push_back(hub);
 }
 std::shared_ptr<jt::tilemap::TileNode>& Grid::move_up_one_step(
@@ -171,7 +171,7 @@ void Grid::createSecondaryHub()
 
         break;
     }
-    hub->m_riverColor = getCurrentColor();
+    hub->m_riverColor = getCurrentSpawnColor();
     hub->setHeight(0);
     m_secondaryHubs.push_back(hub);
 }
@@ -187,7 +187,7 @@ void Grid::doUpdate(float const elapsed)
     }
     for (auto& tile : m_nodeList) {
         if (tile->m_riverColor == jt::colors::White) {
-            tile->getDrawable()->setScale(jt::Vector2f { 0.5f, 0.5f });
+            tile->getDrawable()->setScale(jt::Vector2f { 1.0f, 1.0f });
         } else {
             tile->getDrawable()->setScale(jt::Vector2f { 2.0f, 2.0f });
             tile->getDrawable()->setColor(tile->m_riverColor);
@@ -207,9 +207,31 @@ void Grid::doUpdate(float const elapsed)
 
     highlightTileUnderCursor();
 
+    fadeNodesBasedOnMouseDistance();
+
     if (getGame()->input().keyboard()->pressed(jt::KeyCode::LControl)
         && getGame()->input().keyboard()->justPressed(jt::KeyCode::C)) {
         switchToNextColor();
+    }
+}
+void Grid::fadeNodesBasedOnMouseDistance()
+{
+    auto const mousePos = getGame()->input().mouse()->getMousePositionWorld();
+    for (auto& node : m_nodeList) {
+        if (node->m_riverColor != jt::colors::White) {
+            continue;
+        }
+        auto c = node->getDrawable()->getColor();
+        auto distsq = jt::MathHelper::lengthSquared(node->getDrawable()->getPosition() - mousePos);
+
+        int maxVisibleDistance = 80;
+        if (distsq > maxVisibleDistance * maxVisibleDistance) {
+            c.a = 0;
+        } else {
+            auto dist = sqrt(distsq);
+            c.a = 255 * (maxVisibleDistance - dist) / maxVisibleDistance;
+        }
+        node->getDrawable()->setColor(c);
     }
 }
 
@@ -255,7 +277,7 @@ void Grid::handleSpawnConnectionInput()
             if (!m_startNode) {
                 return;
             }
-            if (m_startNode->m_riverColor != getCurrentColor()) {
+            if (m_startNode->m_riverColor != getCurrentSpawnColor()) {
                 return;
             }
             if (m_startNode == m_endNode) {
@@ -276,11 +298,11 @@ void Grid::handleSpawnConnectionInput()
                 { "grid" });
 
             auto const startColor = m_startNode->m_riverColor;
-            if (startColor != jt::colors::White && startColor != getCurrentColor()) {
+            if (startColor != jt::colors::White && startColor != getCurrentSpawnColor()) {
                 return;
             }
             auto const endColor = m_endNode->m_riverColor;
-            if (endColor != jt::colors::White && endColor != getCurrentColor()) {
+            if (endColor != jt::colors::White && endColor != getCurrentSpawnColor()) {
                 return;
             }
             if (std::count(m_secondaryHubs.begin(), m_secondaryHubs.end(), m_startNode) == 0) {
@@ -312,13 +334,13 @@ void Grid::spawnConnection()
     m_endNode->getNode()->addNeighbour(m_startNode->getNode());
 
     // color nodes
-    m_startNode->m_riverColor = getCurrentColor();
-    m_endNode->m_riverColor = getCurrentColor();
-    m_currentShape->setColor(getCurrentColor());
+    m_startNode->m_riverColor = getCurrentSpawnColor();
+    m_endNode->m_riverColor = getCurrentSpawnColor();
+    m_currentShape->setColor(getCurrentSpawnColor());
 
     // check if a connection is closed
-    if (m_startNode->m_riverColor == getCurrentColor()
-        && m_endNode->m_riverColor == getCurrentColor()) {
+    if (m_startNode->m_riverColor == getCurrentSpawnColor()
+        && m_endNode->m_riverColor == getCurrentSpawnColor()) {
         // check for completed path
         checkForCompletedPath();
     }
@@ -347,7 +369,7 @@ void Grid::checkForCompletedPath()
 std::shared_ptr<jt::tilemap::TileNode> Grid::getCurrentPrimaryHub()
 {
     auto const primary_it = std::find_if(m_primaryHubs.begin(), m_primaryHubs.end(),
-        [this](auto t) { return t->m_riverColor == getCurrentColor(); });
+        [this](auto t) { return t->m_riverColor == getCurrentSpawnColor(); });
     if (primary_it == m_primaryHubs.end()) {
         throw std::invalid_argument { "no primary hub found" };
     }
@@ -443,6 +465,12 @@ void Grid::highlightTileUnderCursor()
     auto const tileUnderCursor = getClosestTileTo(mousePosition);
     if (!tileUnderCursor) {
         return;
+    }
+
+    if (tileUnderCursor->m_riverColor == jt::colors::White) {
+        tileUnderCursor->getDrawable()->setScale(jt::Vector2f { 1.5f, 1.5f });
+    } else {
+        tileUnderCursor->getDrawable()->setScale(jt::Vector2f { 3.0f, 3.0f });
     }
 
     if (std::count(m_primaryHubs.begin(), m_primaryHubs.end(), tileUnderCursor) == 1) {
@@ -559,4 +587,4 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getClosestTileTo(jt::Vector2f const
     return tile;
 }
 
-jt::Color Grid::getCurrentColor() const { return m_allColors.at(m_currentColorIndex); }
+jt::Color Grid::getCurrentSpawnColor() const { return m_allColors.at(m_currentColorIndex); }

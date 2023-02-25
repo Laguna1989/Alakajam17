@@ -16,13 +16,13 @@ public:
 
     std::shared_ptr<jt::tilemap::TileNode> getPossibleEndTile(jt::Vector2f const& pos);
 
-    jt::Color getCurrentColor() const;
+    jt::Color getCurrentSpawnColor() const;
 
     void switchToNextColor();
 
 private:
-    int const m_mapSizeX = 20;
-    int const m_mapSizeY = 14;
+    int const m_mapSizeX = 30;
+    int const m_mapSizeY = 20;
     std::vector<std::shared_ptr<jt::Shape>> m_shapes {};
     std::shared_ptr<jt::Shape> m_currentShape { nullptr };
     std::shared_ptr<jt::tilemap::TileNode> m_startNode { nullptr };
@@ -32,9 +32,9 @@ private:
 
     std::size_t m_currentColorIndex { 0u };
     // TODO fill this with palette colors
-    std::vector<jt::Color> m_allColors { GP::getPalette().getColor(10),
-        GP::getPalette().getColor(13), GP::getPalette().getColor(15), GP::getPalette().getColor(21),
-        GP::getPalette().getColor(30) };
+    std::vector<jt::Color> m_allColors { GP::getPalette().getColor(26),
+        GP::getPalette().getColor(30), GP::getPalette().getColor(23), GP::getPalette().getColor(10),
+        GP::getPalette().getColor(13) };
 
     std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_primaryHubs {};
     std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_secondaryHubs {};
@@ -58,6 +58,7 @@ private:
     std::shared_ptr<jt::tilemap::TileNode> getCurrentPrimaryHub();
     std::shared_ptr<jt::tilemap::TileNode>& move_up_one_step(
         std::shared_ptr<jt::tilemap::TileNode>& hub);
+    void fadeNodesBasedOnMouseDistance();
 };
 
 #endif // ALAKAJAM17_GRID_HPP
