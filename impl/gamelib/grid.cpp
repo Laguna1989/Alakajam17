@@ -587,3 +587,4 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getClosestTileTo(jt::Vector2f const
 
 jt::Color Grid::getCurrentSpawnColor() const { return m_allColors.at(m_currentColorIndex); }
 jt::Color Grid::getCurrentDrawColor() const { return m_currentDrawColor; }
+int Grid::getPathsCompleted() const { return m_pathsCompleted; }

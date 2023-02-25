@@ -34,13 +34,18 @@ private:
     std::size_t m_currentColorIndex { 0u };
     // TODO fill this with palette colors
     std::vector<jt::Color> m_allColors { GP::getPalette().getColor(26),
-        GP::getPalette().getColor(30), GP::getPalette().getColor(23), GP::getPalette().getColor(10),
+        GP::getPalette().getColor(30), GP::getPalette().getColor(23), GP::getPalette().getColor(5),
         GP::getPalette().getColor(13) };
 
     std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_primaryHubs {};
     std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_secondaryHubs {};
 
     int m_pathsCompleted { 0 };
+
+public:
+    int getPathsCompleted() const;
+
+private:
     int m_allowedMaxDistanceToPrimaryHub { 2 };
     jt::Color m_currentDrawColor;
 

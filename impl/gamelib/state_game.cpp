@@ -49,10 +49,7 @@ void StateGame::doInternalUpdate(float const elapsed)
 {
     if (m_running) {
         // update game logic here
-        if (getGame()->input().keyboard()->justPressed(jt::KeyCode::A)) {
-            m_scoreP1++;
-            m_hud->getObserverScoreP1()->notify(m_scoreP1);
-        }
+        m_hud->getObserverScoreP1()->notify(m_grid->getPathsCompleted());
     }
 
     //    m_grid->update(elapsed);
