@@ -21,6 +21,8 @@ public:
 
     void switchToNextColor();
 
+    int getPathsCompleted() const;
+
 private:
     int const m_mapSizeX = 30;
     int const m_mapSizeY = 20;
@@ -42,9 +44,6 @@ private:
 
     int m_pathsCompleted { 0 };
 
-public:
-    int getPathsCompleted() const;
-
 private:
     int m_allowedMaxDistanceToPrimaryHub { 2 };
     jt::Color m_currentDrawColor;
@@ -62,9 +61,11 @@ private:
     void createSecondaryHub();
     void checkForCompletedPath();
     void pathCompleted();
+
     std::shared_ptr<jt::tilemap::TileNode> getCurrentPrimaryHub();
-    std::shared_ptr<jt::tilemap::TileNode>& move_up_one_step(
-        std::shared_ptr<jt::tilemap::TileNode>& hub);
+    std::shared_ptr<jt::tilemap::TileNode> getRandomPrimaryHub();
+    std::shared_ptr<jt::tilemap::TileNode> getPrimaryHubForColor(jt::Color const& c);
+
     void fadeNodesBasedOnMouseDistance();
 };
 

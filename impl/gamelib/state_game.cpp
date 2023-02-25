@@ -1,7 +1,6 @@
 ﻿#include "state_game.hpp"
 #include <box2dwrapper/box2d_world_impl.hpp>
 #include <color/color.hpp>
-#include <color/color_conversions.hpp>
 #include <game_interface.hpp>
 #include <game_properties.hpp>
 #include <hud/hud.hpp>
@@ -12,7 +11,6 @@
 
 void StateGame::doInternalCreate()
 {
-
     float const w = static_cast<float>(GP::GetWindowSize().x);
     float const h = static_cast<float>(GP::GetWindowSize().y);
 
@@ -36,7 +34,7 @@ void StateGame::doInternalCreate()
     // StateGame will call drawObjects itself.
     setAutoDraw(false);
 
-    getGame()->gfx().camera().move(jt::Vector2f { -15.0f, -25.0f });
+    getGame()->gfx().camera().move(jt::Vector2f { -15.0f, -15.0f });
 }
 
 void StateGame::createGrid()

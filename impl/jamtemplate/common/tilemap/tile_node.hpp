@@ -27,6 +27,7 @@ public:
     void setHeight(float mHeight);
 
     jt::Color m_riverColor { jt::colors::White };
+    bool m_connected { false };
 
 private:
     std::shared_ptr<jt::DrawableInterface> m_drawable;

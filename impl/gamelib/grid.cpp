@@ -5,7 +5,6 @@
 #include <math_helper.hpp>
 #include <pathfinder/node.hpp>
 #include <pathfinder/pathfinder.hpp>
-#include <random/open_simplex_noise2d.hpp>
 #include <system_helper.hpp>
 #include <stdexcept>
 
@@ -46,11 +45,6 @@ void Grid::createPrimaryHub()
             continue;
         }
 
-        if (counter < 90) {
-            // move two steps upwards
-            hub = move_up_one_step(hub);
-        }
-
         if (counter < 95) {
             // do not spawn close to other primary hub
             bool tooClose { false };
@@ -71,42 +65,17 @@ void Grid::createPrimaryHub()
         break;
     }
 
-    hub->setHeight(9999999);
     hub->m_riverColor = getCurrentSpawnColor();
     m_primaryHubs.push_back(hub);
-}
-std::shared_ptr<jt::tilemap::TileNode>& Grid::move_up_one_step(
-    std::shared_ptr<jt::tilemap::TileNode>& hub)
-{
-    auto const hubPos = hub->getNode()->getTilePosition();
-    std::shared_ptr<jt::tilemap::TileNode> otherTileMax { nullptr };
-    float maxFoundHeight = hub->getHeight();
-    for (int i : { -1, 0, 1 }) {
-        for (int j : { -1, 0, 1 }) {
-            if (i == 0 && j == 0) {
-                continue;
-            }
-            auto other = getTileAt(hubPos.x + i, hubPos.y + j);
-            if (!other) {
-                continue;
-            }
-            if (other->getHeight() > maxFoundHeight) {
-                maxFoundHeight = other->getHeight();
-                otherTileMax = other;
-            }
-        }
-    }
-    if (otherTileMax) {
-        hub = otherTileMax;
-    }
-    return hub;
 }
 
 void Grid::createSecondaryHub()
 {
-    std::cout << "createSecondaryHub: " << m_allowedMaxDistanceToPrimaryHub << std::endl;
     std::shared_ptr<jt::tilemap::TileNode> hub { nullptr };
     int counter = 0;
+    auto randomPrimaryHub
+        = *jt::SystemHelper::select_randomly(m_primaryHubs.begin(), m_primaryHubs.end());
+    auto selectedColor = randomPrimaryHub->m_riverColor;
     while (true) {
         counter++;
         if (counter >= 200) {
@@ -120,59 +89,52 @@ void Grid::createSecondaryHub()
             continue;
         }
 
-        // do not spawn on map border
-        auto const tileposX = hub->getNode()->getTilePosition().x;
-        if (tileposX == 0 || tileposX == m_mapSizeX || tileposX == m_mapSizeX - 1) {
-            hub = nullptr;
-            continue;
-        }
-        auto const tileposY = hub->getNode()->getTilePosition().y;
-        if (tileposY == 0 || tileposY == m_mapSizeY || tileposY == m_mapSizeY - 1) {
-            hub = nullptr;
-            continue;
-        }
+        if (counter < 150) {
+            auto const tileposX = hub->getNode()->getTilePosition().x;
+            auto const tileposY = hub->getNode()->getTilePosition().y;
 
-        // should be in close distance to primary hub
-        auto const phPos = getCurrentPrimaryHub()->getNode()->getTilePosition();
-        auto const distX = abs(static_cast<int>(phPos.x) - static_cast<int>(tileposX));
-        auto const distY = abs(static_cast<int>(phPos.y) - static_cast<int>(tileposY));
-        if (distX > m_allowedMaxDistanceToPrimaryHub || distY > m_allowedMaxDistanceToPrimaryHub) {
-            hub = nullptr;
-            continue;
-        }
+            // should be in close distance to primary hub
+            auto const phPos = getPrimaryHubForColor(selectedColor)->getNode()->getTilePosition();
+            auto const distX = abs(static_cast<int>(phPos.x) - static_cast<int>(tileposX));
+            auto const distY = abs(static_cast<int>(phPos.y) - static_cast<int>(tileposY));
+            if (distX > m_allowedMaxDistanceToPrimaryHub
+                || distY > m_allowedMaxDistanceToPrimaryHub) {
+                hub = nullptr;
+                continue;
+            }
 
-        auto const hubPos = hub->getNode()->getTilePosition();
-        bool oneSimilarNeighbour { false };
-        int numberOfOtherNeighbours { 0 };
-        for (int i : { -1, 0, 1 }) {
-            for (int j : { -1, 0, 1 }) {
-                if (i == 0 && j == 0) {
-                    continue;
-                }
-                auto other = getTileAt(hubPos.x + i, hubPos.y + j);
-                if (!other) {
-                    continue;
-                }
-                if (other->m_riverColor == hub->m_riverColor) {
-                    oneSimilarNeighbour = true;
-                    break;
-                } else if (other->m_riverColor != jt::colors::White) {
-                    numberOfOtherNeighbours++;
+            auto const hubPos = hub->getNode()->getTilePosition();
+            bool oneSimilarNeighbour { false };
+            int numberOfOtherNeighbours { 0 };
+            for (int i : { -1, 0, 1 }) {
+                for (int j : { -1, 0, 1 }) {
+                    if (i == 0 && j == 0) {
+                        continue;
+                    }
+                    auto other = getTileAt(hubPos.x + i, hubPos.y + j);
+                    if (!other) {
+                        continue;
+                    }
+                    if (other->m_riverColor == hub->m_riverColor) {
+                        oneSimilarNeighbour = true;
+                        break;
+                    } else if (other->m_riverColor != jt::colors::White) {
+                        numberOfOtherNeighbours++;
+                    }
                 }
             }
-        }
-        if (oneSimilarNeighbour) {
-            break;
-        }
-        if (numberOfOtherNeighbours >= 6) {
-            hub = nullptr;
-            continue;
+            if (oneSimilarNeighbour) {
+                break;
+            }
+            if (numberOfOtherNeighbours >= 6) {
+                hub = nullptr;
+                continue;
+            }
         }
 
         break;
     }
-    hub->m_riverColor = getCurrentSpawnColor();
-    hub->setHeight(0);
+    hub->m_riverColor = selectedColor;
     m_secondaryHubs.push_back(hub);
 }
 
@@ -289,11 +251,10 @@ void Grid::handleSpawnConnectionInput()
                 + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().x))
                 + ", "
                 + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().y))
-                + ", " + std::to_string(m_startNode->getHeight()) + ")";
+                + ")";
             std::string endPosString = "("
                 + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().x)) + ", "
-                + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().y)) + ", "
-                + std::to_string(m_endNode->getHeight()) + ")";
+                + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().y)) + ")";
             getGame()->logger().info(
                 "Try Spawn connection between " + startPosString + " - " + endPosString,
                 { "grid" });
@@ -302,11 +263,6 @@ void Grid::handleSpawnConnectionInput()
             auto const endColor = m_endNode->m_riverColor;
             if (endColor != jt::colors::White && endColor != startColor) {
                 return;
-            }
-            if (std::count(m_secondaryHubs.begin(), m_secondaryHubs.end(), m_startNode) == 0) {
-                if (m_startNode->getHeight() < m_endNode->getHeight()) {
-                    return;
-                }
             }
 
             spawnConnection();
@@ -318,12 +274,10 @@ void Grid::spawnConnection()
 {
     std::string startPosString = "("
         + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().x)) + ", "
-        + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().y)) + ", "
-        + std::to_string(m_startNode->getHeight()) + ")";
+        + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().y)) + ")";
     std::string endPosString = "("
         + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().x)) + ", "
-        + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().y)) + ", "
-        + std::to_string(m_endNode->getHeight()) + ")";
+        + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().y)) + ")";
     getGame()->logger().info(
         "Spawn connection between " + startPosString + " - " + endPosString, { "grid" });
 
@@ -337,11 +291,8 @@ void Grid::spawnConnection()
     m_currentShape->setColor(getCurrentDrawColor());
 
     // check if a connection is closed
-    if (m_startNode->m_riverColor == getCurrentSpawnColor()
-        && m_endNode->m_riverColor == getCurrentSpawnColor()) {
-        // check for completed path
-        checkForCompletedPath();
-    }
+    // check for completed path
+    checkForCompletedPath();
 
     m_shapes.push_back(m_currentShape);
     m_currentShape = nullptr;
@@ -351,23 +302,41 @@ void Grid::spawnConnection()
 
 void Grid::checkForCompletedPath()
 {
-    auto const primary = getCurrentPrimaryHub();
-    auto const secondary = m_secondaryHubs.back();
-    for (auto& t : m_nodeList) {
-        t->reset();
-    }
-    auto path = jt::pathfinder::calculatePath(primary->getNode(), secondary->getNode());
-    if (path.size() == 0) {
-        getGame()->logger().verbose("no path found");
-    } else {
-        getGame()->logger().info("path completed");
-        pathCompleted();
+    for (auto secondary : m_secondaryHubs) {
+        if (!secondary) {
+            continue;
+        }
+        if (secondary->m_connected) {
+            continue;
+        }
+        auto const primary = getPrimaryHubForColor(secondary->m_riverColor);
+
+        for (auto& t : m_nodeList) {
+            t->reset();
+        }
+        auto path = jt::pathfinder::calculatePath(primary->getNode(), secondary->getNode());
+        if (path.size() == 0) {
+            getGame()->logger().verbose("no path found");
+        } else {
+            getGame()->logger().info("path completed");
+            pathCompleted();
+            secondary->m_connected = true;
+        }
     }
 }
 std::shared_ptr<jt::tilemap::TileNode> Grid::getCurrentPrimaryHub()
 {
-    auto const primary_it = std::find_if(m_primaryHubs.begin(), m_primaryHubs.end(),
-        [this](auto t) { return t->m_riverColor == getCurrentSpawnColor(); });
+    return getPrimaryHubForColor(getCurrentSpawnColor());
+}
+
+std::shared_ptr<jt::tilemap::TileNode> Grid::getRandomPrimaryHub()
+{
+    return *jt::SystemHelper::select_randomly(m_primaryHubs.begin(), m_primaryHubs.end());
+}
+std::shared_ptr<jt::tilemap::TileNode> Grid::getPrimaryHubForColor(jt::Color const& c)
+{
+    auto const primary_it = std::find_if(
+        m_primaryHubs.begin(), m_primaryHubs.end(), [&c](auto t) { return t->m_riverColor == c; });
     if (primary_it == m_primaryHubs.end()) {
         throw std::invalid_argument { "no primary hub found" };
     }
@@ -515,50 +484,22 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getTileAt(int x, int y)
     return m_nodeList.at(index);
 }
 
-float getHeight(jt::OpenSimplexNoise2D& noise, int i, int j)
-{
-    return jt::MathHelper::clamp((noise.eval(i / 4.0f, j / 4.0f) + 1.0f) / 2.0f, 0.0f, 1.0f);
-}
-
 void Grid::createTiles()
 {
     float const distX = GP::GetScreenSize().x / m_mapSizeX;
     float const distY = GP::GetScreenSize().y / m_mapSizeY;
 
-    jt::OpenSimplexNoise2D noise2D { 1u };
-
-    float minHeight { 99999 };
-    float maxHeight { 0.0f };
     for (int i = 0; i != m_mapSizeX; ++i) {
         for (int j = 0; j != m_mapSizeY; ++j) {
-            auto const height = getHeight(noise2D, i, j);
-            if (height < minHeight) {
-                minHeight = height;
-            }
-            if (height > maxHeight) {
-                maxHeight = height;
-            }
-        }
-    }
-
-    for (int i = 0; i != m_mapSizeX; ++i) {
-        for (int j = 0; j != m_mapSizeY; ++j) {
-            auto height = getHeight(noise2D, i, j);
-            height = (height - minHeight) / (maxHeight + minHeight);
             std::shared_ptr<jt::Shape> drawable
                 = jt::dh::createShapeCircle(distX / 10, jt::colors::White, textureManager());
             drawable->setOrigin(jt::OriginMode::CENTER);
             drawable->setPosition(jt::Vector2f { i * distX, j * distY });
-            std::cout << i << ", " << j << ", " << height << std::endl;
-            std::uint8_t v = static_cast<std::uint8_t>(height * 255);
-            jt::Color c { v, v, v, 255 };
-            drawable->setColor(c);
             auto node = std::make_shared<jt::pathfinder::Node>();
             node->setPosition(
                 jt::Vector2u { static_cast<unsigned int>(i), static_cast<unsigned int>(j) });
 
             auto tileNode = std::make_shared<jt::tilemap::TileNode>(drawable, node);
-            tileNode->setHeight(height);
             m_nodeList.emplace_back(tileNode);
         }
     }
