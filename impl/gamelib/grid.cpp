@@ -37,21 +37,54 @@ void Grid::handleSpawnConnectionInput()
             m_currentShape = std::make_shared<jt::Shape>();
             m_currentShape->makeRect(jt::Vector2f { 100.0f, 10.0f }, textureManager());
             m_shapeStartNode = possibleTile;
-            //            m_shapeStart = possibleTile->getDrawable()->getPosition();
+            if (!m_shapeStartNode) {
+                return;
+            }
             m_currentShape->setPosition(m_shapeStartNode->getDrawable()->getPosition());
             m_currentShape->setOrigin(jt::Vector2f { 5.0f, 5.0f });
         } else {
             if (m_currentShape->getScale().x == 0.0f || m_currentShape->getScale().y == 0.0f) {
                 return;
             }
-            if (m_shapeStartNode->getDrawable()->getPosition() == m_shapeEnd) {
+            if (!m_shapeStartNode) {
+                return;
+            }
+            if (m_shapeStartNode == m_shapeEndNode) {
                 return;
             }
             m_shapes.push_back(m_currentShape);
             m_currentShape->setColor(jt::colors::Blue);
             m_currentShape = nullptr;
+            m_shapeStartNode = nullptr;
         }
     }
+}
+
+std::shared_ptr<jt::tilemap::TileNode> Grid::getPossibleEndTile(jt::Vector2f const& pos)
+{
+    if (!m_shapeStartNode) {
+        return nullptr;
+    }
+    auto const possibleEndTile
+        = getClosestTileTo(getGame()->input().mouse()->getMousePositionWorld());
+    if (!possibleEndTile) {
+        return nullptr;
+    }
+    auto const endTilepos = possibleEndTile->getNode()->getTilePosition();
+    auto const startTilepos = m_shapeStartNode->getNode()->getTilePosition();
+
+    auto const distX = static_cast<int>(endTilepos.x) - static_cast<int>(startTilepos.x);
+    auto const distY = static_cast<int>(endTilepos.y) - static_cast<int>(startTilepos.y);
+    std::cout << distX << " " << distY << std::endl;
+
+    if (distX < -1 || distX > 1) {
+        return nullptr;
+    }
+    if (distY < -1 || distY > 1) {
+        return nullptr;
+    }
+
+    return possibleEndTile;
 }
 
 void Grid::updateCurrentShapeIfSet(float const elapsed)
@@ -62,26 +95,31 @@ void Grid::updateCurrentShapeIfSet(float const elapsed)
 
     m_currentShape->update(elapsed);
 
-    auto const possibleTile = getClosestTileTo(getGame()->input().mouse()->getMousePositionWorld());
+    auto const possibleEndTile
+        = getPossibleEndTile(getGame()->input().mouse()->getMousePositionWorld());
 
-    if (!possibleTile) {
-        m_shapeEnd = m_shapeStartNode->getDrawable()->getPosition();
+    if (!possibleEndTile) {
+        if (!m_shapeStartNode) {
+            return;
+        }
+        m_shapeEndNode = m_shapeStartNode;
         m_currentShape->setScale(jt::Vector2f { 0.0f, 0.0f });
         return;
     }
 
-    m_shapeEnd = possibleTile->getDrawable()->getPosition();
-    if (m_shapeEnd == m_shapeStartNode->getDrawable()->getPosition()) {
+    m_shapeEndNode = possibleEndTile;
+    if (!m_shapeStartNode) {
+        return;
+    }
+    auto startNodePosition = m_shapeStartNode->getDrawable()->getPosition();
+    if (m_shapeEndNode == m_shapeStartNode) {
         m_currentShape->setScale(jt::Vector2f { 0.0f, 0.0f });
         return;
     }
 
-    auto const dif = m_shapeEnd - m_shapeStartNode->getDrawable()->getPosition();
+    auto const dif = m_shapeEndNode->getDrawable()->getPosition() - startNodePosition;
     auto const dist = jt::MathHelper::length(dif);
     auto scaleX = dist / 100;
-    if (scaleX >= 1.0f) {
-        scaleX = 1.0f;
-    }
 
     m_currentShape->setScale(jt::Vector2f { scaleX, 1.0f });
     float const angle = jt::MathHelper::angleOf(dif);

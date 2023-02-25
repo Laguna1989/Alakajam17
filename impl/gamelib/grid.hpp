@@ -13,13 +13,15 @@ public:
     std::shared_ptr<jt::tilemap::TileNode> getTileAt(int x, int y);
     std::shared_ptr<jt::tilemap::TileNode> getClosestTileTo(jt::Vector2f const& pos);
 
+    std::shared_ptr<jt::tilemap::TileNode> getPossibleEndTile(jt::Vector2f const& pos);
+
 private:
     int const m_mapSizeX = 15;
     int const m_mapSizeY = 10;
     std::vector<std::shared_ptr<jt::Shape>> m_shapes {};
     std::shared_ptr<jt::Shape> m_currentShape { nullptr };
     std::shared_ptr<jt::tilemap::TileNode> m_shapeStartNode { nullptr };
-    jt::Vector2f m_shapeEnd { 0.0f, 0.0f };
+    std::shared_ptr<jt::tilemap::TileNode> m_shapeEndNode { nullptr };
 
     std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_tiles {};
 
