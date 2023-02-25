@@ -5,6 +5,7 @@
 #include <math_helper.hpp>
 #include <pathfinder/node.hpp>
 #include <pathfinder/pathfinder.hpp>
+#include <random/open_simplex_noise2d.hpp>
 #include <system_helper.hpp>
 #include <stdexcept>
 
@@ -66,6 +67,7 @@ void Grid::createPrimaryHub()
         break;
     }
     hub->m_riverColor = getCurrentColor();
+    hub->setHeight(9999999);
     m_primaryHubs.push_back(hub);
 }
 
@@ -107,9 +109,13 @@ void Grid::createSecondaryHub()
             hub = nullptr;
             continue;
         }
+
+        // TODO check all surrounding nodes should be lower than surroundings of primary node
+
         break;
     }
     hub->m_riverColor = getCurrentColor();
+    hub->setHeight(0);
     m_secondaryHubs.push_back(hub);
 }
 
@@ -187,9 +193,26 @@ void Grid::handleSpawnConnectionInput()
             if (!m_startNode) {
                 return;
             }
+            if (m_startNode->m_riverColor != getCurrentColor()) {
+                return;
+            }
             if (m_startNode == m_endNode) {
                 return;
             }
+
+            std::string startPosString = "("
+                + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().x))
+                + ", "
+                + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().y))
+                + ", " + std::to_string(m_startNode->getHeight()) + ")";
+            std::string endPosString = "("
+                + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().x)) + ", "
+                + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().y)) + ", "
+                + std::to_string(m_endNode->getHeight()) + ")";
+            getGame()->logger().info(
+                "Try Spawn connection between " + startPosString + " - " + endPosString,
+                { "grid" });
+
             auto const startColor = m_startNode->m_riverColor;
             if (startColor != jt::colors::White && startColor != getCurrentColor()) {
                 return;
@@ -211,10 +234,12 @@ void Grid::spawnConnection()
 {
     std::string startPosString = "("
         + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().x)) + ", "
-        + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().y)) + ")";
+        + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().y)) + ", "
+        + std::to_string(m_startNode->getHeight()) + ")";
     std::string endPosString = "("
         + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().x)) + ", "
-        + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().y)) + ")";
+        + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().y)) + ", "
+        + std::to_string(m_endNode->getHeight()) + ")";
     getGame()->logger().info(
         "Spawn connection between " + startPosString + " - " + endPosString, { "grid" });
 
@@ -400,19 +425,42 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getTileAt(int x, int y)
     return m_nodeList.at(index);
 }
 
+float getHeight(jt::OpenSimplexNoise2D& noise, int i, int j)
+{
+    return jt::MathHelper::clamp((noise.eval(i / 4.0f, j / 4.0f) + 1.0f) / 2.0f, 0.0f, 1.0f);
+}
+
 void Grid::createTiles()
 {
     float const distX = GP::GetScreenSize().x / m_mapSizeX;
     float const distY = GP::GetScreenSize().y / m_mapSizeY;
-    float const maxHeight = m_mapSizeX + m_mapSizeY;
+
+    jt::OpenSimplexNoise2D noise2D { 1u };
+
+    float minHeight { 99999 };
+    float maxHeight { 0.0f };
     for (int i = 0; i != m_mapSizeX; ++i) {
         for (int j = 0; j != m_mapSizeY; ++j) {
+            auto const height = getHeight(noise2D, i, j);
+            if (height < minHeight) {
+                minHeight = height;
+            }
+            if (height > maxHeight) {
+                maxHeight = height;
+            }
+        }
+    }
+
+    for (int i = 0; i != m_mapSizeX; ++i) {
+        for (int j = 0; j != m_mapSizeY; ++j) {
+            auto height = getHeight(noise2D, i, j);
+            height = (height - minHeight) / (maxHeight + minHeight);
             std::shared_ptr<jt::Shape> drawable
                 = jt::dh::createShapeCircle(distX / 10, jt::colors::White, textureManager());
-            //            drawable->setOffset(jt::OffsetMode::CENTER);
             drawable->setOrigin(jt::OriginMode::CENTER);
             drawable->setPosition(jt::Vector2f { i * distX, j * distY });
-            std::uint8_t v = static_cast<std::uint8_t>(static_cast<float>(i + j) / maxHeight * 255);
+            std::cout << i << ", " << j << ", " << height << std::endl;
+            std::uint8_t v = static_cast<std::uint8_t>(height * 255);
             jt::Color c { v, v, v, 255 };
             drawable->setColor(c);
             auto node = std::make_shared<jt::pathfinder::Node>();
@@ -420,7 +468,7 @@ void Grid::createTiles()
                 jt::Vector2u { static_cast<unsigned int>(i), static_cast<unsigned int>(j) });
 
             auto tileNode = std::make_shared<jt::tilemap::TileNode>(drawable, node);
-            tileNode->setHeight(i + j);
+            tileNode->setHeight(height);
             m_nodeList.emplace_back(tileNode);
         }
     }
