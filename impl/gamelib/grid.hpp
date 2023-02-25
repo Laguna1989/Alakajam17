@@ -20,8 +20,8 @@ public:
     void switchToNextColor();
 
 private:
-    int const m_mapSizeX = 15;
-    int const m_mapSizeY = 10;
+    int const m_mapSizeX = 20;
+    int const m_mapSizeY = 15;
     std::vector<std::shared_ptr<jt::Shape>> m_shapes {};
     std::shared_ptr<jt::Shape> m_currentShape { nullptr };
     std::shared_ptr<jt::tilemap::TileNode> m_startNode { nullptr };
@@ -37,6 +37,7 @@ private:
     std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_secondaryHubs {};
 
     int m_pathsCompleted { 0 };
+    int m_allowedMaxDistanceToPrimaryHub { 2 };
 
     void doCreate() override;
     void doUpdate(float const elapsed) override;
@@ -51,6 +52,7 @@ private:
     void createSecondaryHub();
     void checkForCompletedPath();
     void pathCompleted();
+    std::shared_ptr<jt::tilemap::TileNode> getCurrentPrimaryHub();
 };
 
 #endif // ALAKAJAM17_GRID_HPP

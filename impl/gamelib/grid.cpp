@@ -6,6 +6,7 @@
 #include <pathfinder/node.hpp>
 #include <pathfinder/pathfinder.hpp>
 #include <system_helper.hpp>
+#include <stdexcept>
 
 void Grid::doCreate()
 {
@@ -17,11 +18,47 @@ void Grid::doCreate()
 void Grid::createPrimaryHub()
 {
     std::shared_ptr<jt::tilemap::TileNode> hub { nullptr };
+
+    int counter = 0;
     while (true) {
+        counter++;
+        if (counter >= 100) {
+            getGame()->logger().info("no place for primary hub found", { "grid" });
+            // TODO
+            break;
+        }
         hub = *jt::SystemHelper::select_randomly(m_tiles.begin(), m_tiles.end());
         if (hub->getDrawable()->getColor() != jt::colors::White) {
             hub = nullptr;
             continue;
+        }
+        auto const tileposX = hub->getNode()->getTilePosition().x;
+        if (tileposX == 0 || tileposX == m_mapSizeX || tileposX == m_mapSizeX - 1) {
+            hub = nullptr;
+            continue;
+        }
+        auto const tileposY = hub->getNode()->getTilePosition().y;
+        if (tileposY == 0 || tileposY == m_mapSizeY || tileposY == m_mapSizeY - 1) {
+            hub = nullptr;
+            continue;
+        }
+
+        // do not spawn close to other primary hub
+        if (counter <= 90) {
+            bool tooClose { false };
+            for (auto otherPrimaryHub : m_primaryHubs) {
+                auto const phPos = otherPrimaryHub->getNode()->getTilePosition();
+                auto const distX = abs(static_cast<int>(phPos.x) - static_cast<int>(tileposX));
+                auto const distY = abs(static_cast<int>(phPos.y) - static_cast<int>(tileposY));
+                if (distX < 3 || distY < 3) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (tooClose) {
+                hub = nullptr;
+                continue;
+            }
         }
 
         break;
@@ -32,14 +69,42 @@ void Grid::createPrimaryHub()
 
 void Grid::createSecondaryHub()
 {
+    std::cout << "createSecondaryHub: " << m_allowedMaxDistanceToPrimaryHub << std::endl;
     std::shared_ptr<jt::tilemap::TileNode> hub { nullptr };
+    int counter = 0;
     while (true) {
+        counter++;
+        if (counter >= 100) {
+            getGame()->logger().info("no place for secondary hub found", { "grid" });
+            // TODO
+            break;
+        }
         hub = *jt::SystemHelper::select_randomly(m_tiles.begin(), m_tiles.end());
         if (hub->getDrawable()->getColor() != jt::colors::White) {
             hub = nullptr;
             continue;
         }
 
+        // do not spawn on map border
+        auto const tileposX = hub->getNode()->getTilePosition().x;
+        if (tileposX == 0 || tileposX == m_mapSizeX || tileposX == m_mapSizeX - 1) {
+            hub = nullptr;
+            continue;
+        }
+        auto const tileposY = hub->getNode()->getTilePosition().y;
+        if (tileposY == 0 || tileposY == m_mapSizeY || tileposY == m_mapSizeY - 1) {
+            hub = nullptr;
+            continue;
+        }
+
+        // should be in close distance to primary hub
+        auto const phPos = getCurrentPrimaryHub()->getNode()->getTilePosition();
+        auto const distX = abs(static_cast<int>(phPos.x) - static_cast<int>(tileposX));
+        auto const distY = abs(static_cast<int>(phPos.y) - static_cast<int>(tileposY));
+        if (distX > m_allowedMaxDistanceToPrimaryHub || distY > m_allowedMaxDistanceToPrimaryHub) {
+            hub = nullptr;
+            continue;
+        }
         break;
     }
     hub->getDrawable()->setColor(getCurrentColor());
@@ -56,7 +121,7 @@ void Grid::doUpdate(float const elapsed)
         shp->update(elapsed);
     }
     for (auto& tile : m_tiles) {
-        tile->getDrawable()->setScale(jt::Vector2f { 1.0f, 1.0f });
+        tile->getDrawable()->setScale(jt::Vector2f { 0.5f, 0.5f });
         tile->getDrawable()->update(elapsed);
     }
 
@@ -150,6 +215,11 @@ void Grid::spawnConnection()
     m_startNode->getNode()->addNeighbour(m_endNode->getNode());
     m_endNode->getNode()->addNeighbour(m_startNode->getNode());
 
+    // color nodes
+    m_startNode->getDrawable()->setColor(getCurrentColor());
+    m_endNode->getDrawable()->setColor(getCurrentColor());
+    m_currentShape->setColor(getCurrentColor());
+
     // check if a connection is closed
     if (m_startNode->getDrawable()->getColor() == getCurrentColor()
         && m_endNode->getDrawable()->getColor() == getCurrentColor()) {
@@ -157,13 +227,7 @@ void Grid::spawnConnection()
         checkForCompletedPath();
     }
 
-    // color nodes
-    m_startNode->getDrawable()->setColor(getCurrentColor());
-    m_endNode->getDrawable()->setColor(getCurrentColor());
-
     m_shapes.push_back(m_currentShape);
-    m_currentShape->setColor(getCurrentColor());
-
     m_currentShape = nullptr;
     m_startNode = nullptr;
     m_endNode = nullptr;
@@ -171,26 +235,44 @@ void Grid::spawnConnection()
 
 void Grid::checkForCompletedPath()
 {
-    auto const primary = m_primaryHubs.at(0);
+    auto const primary = getCurrentPrimaryHub();
     auto const secondary = m_secondaryHubs.back();
     for (auto& t : m_tiles) {
         t->reset();
     }
     auto path = jt::pathfinder::calculatePath(primary->getNode(), secondary->getNode());
     if (path.size() == 0) {
-        getGame()->logger().info("no path found");
+        getGame()->logger().debug("no path found");
     } else {
         getGame()->logger().info("path completed");
         pathCompleted();
     }
 }
+std::shared_ptr<jt::tilemap::TileNode> Grid::getCurrentPrimaryHub()
+{
+    auto const primary_it = std::find_if(m_primaryHubs.begin(), m_primaryHubs.end(),
+        [this](auto t) { return t->getDrawable()->getColor() == getCurrentColor(); });
+    if (primary_it == m_primaryHubs.end()) {
+        throw std::invalid_argument { "no primary hub found" };
+    }
+    auto const primary = *primary_it;
+    return primary;
+}
 
 void Grid::pathCompleted()
 {
     m_pathsCompleted++;
-    if (m_pathsCompleted == 1 || m_pathsCompleted == 2) {
-        createSecondaryHub();
+
+    if (m_pathsCompleted % 3 == 0) {
+        switchToNextColor();
+        if (m_primaryHubs.size() < 3) {
+            createPrimaryHub();
+        }
     }
+    if (m_pathsCompleted % 8 == 0) {
+        m_allowedMaxDistanceToPrimaryHub++;
+    }
+    createSecondaryHub();
 }
 
 std::shared_ptr<jt::tilemap::TileNode> Grid::getPossibleEndTile(jt::Vector2f const& pos)
