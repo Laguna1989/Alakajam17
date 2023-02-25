@@ -11,7 +11,9 @@
 void Grid::doCreate()
 {
     createTiles();
+    std::cout << m_allColors.size() << std::endl;
     createPrimaryHub();
+
     createSecondaryHub();
 }
 
@@ -27,8 +29,8 @@ void Grid::createPrimaryHub()
             // TODO
             break;
         }
-        hub = *jt::SystemHelper::select_randomly(m_tiles.begin(), m_tiles.end());
-        if (hub->getDrawable()->getColor() != jt::colors::White) {
+        hub = *jt::SystemHelper::select_randomly(m_nodeList.begin(), m_nodeList.end());
+        if (hub->m_riverColor != jt::colors::White) {
             hub = nullptr;
             continue;
         }
@@ -63,7 +65,7 @@ void Grid::createPrimaryHub()
 
         break;
     }
-    hub->getDrawable()->setColor(getCurrentColor());
+    hub->m_riverColor = getCurrentColor();
     m_primaryHubs.push_back(hub);
 }
 
@@ -79,8 +81,8 @@ void Grid::createSecondaryHub()
             // TODO
             break;
         }
-        hub = *jt::SystemHelper::select_randomly(m_tiles.begin(), m_tiles.end());
-        if (hub->getDrawable()->getColor() != jt::colors::White) {
+        hub = *jt::SystemHelper::select_randomly(m_nodeList.begin(), m_nodeList.end());
+        if (hub->m_riverColor != jt::colors::White) {
             hub = nullptr;
             continue;
         }
@@ -107,7 +109,7 @@ void Grid::createSecondaryHub()
         }
         break;
     }
-    hub->getDrawable()->setColor(getCurrentColor());
+    hub->m_riverColor = getCurrentColor();
     m_secondaryHubs.push_back(hub);
 }
 
@@ -120,17 +122,19 @@ void Grid::doUpdate(float const elapsed)
     for (auto& shp : m_shapes) {
         shp->update(elapsed);
     }
-    for (auto& tile : m_tiles) {
+    for (auto& tile : m_nodeList) {
         tile->getDrawable()->setScale(jt::Vector2f { 0.5f, 0.5f });
         tile->getDrawable()->update(elapsed);
     }
 
     for (auto& ph : m_primaryHubs) {
         ph->getDrawable()->setScale(jt::Vector2f { 4.0f, 4.0f });
+        ph->getDrawable()->setColor(ph->m_riverColor);
     }
 
     for (auto& ph : m_secondaryHubs) {
         ph->getDrawable()->setScale(jt::Vector2f { 2.0f, 2.0f });
+        ph->getDrawable()->setColor(ph->m_riverColor);
     }
 
     highlightTileUnderCursor();
@@ -186,12 +190,15 @@ void Grid::handleSpawnConnectionInput()
             if (m_startNode == m_endNode) {
                 return;
             }
-            auto const startColor = m_startNode->getDrawable()->getColor();
+            auto const startColor = m_startNode->m_riverColor;
             if (startColor != jt::colors::White && startColor != getCurrentColor()) {
                 return;
             }
-            auto const endColor = m_endNode->getDrawable()->getColor();
+            auto const endColor = m_endNode->m_riverColor;
             if (endColor != jt::colors::White && endColor != getCurrentColor()) {
+                return;
+            }
+            if (m_startNode->getHeight() < m_endNode->getHeight()) {
                 return;
             }
 
@@ -216,13 +223,13 @@ void Grid::spawnConnection()
     m_endNode->getNode()->addNeighbour(m_startNode->getNode());
 
     // color nodes
-    m_startNode->getDrawable()->setColor(getCurrentColor());
-    m_endNode->getDrawable()->setColor(getCurrentColor());
+    m_startNode->m_riverColor = getCurrentColor();
+    m_endNode->m_riverColor = getCurrentColor();
     m_currentShape->setColor(getCurrentColor());
 
     // check if a connection is closed
-    if (m_startNode->getDrawable()->getColor() == getCurrentColor()
-        && m_endNode->getDrawable()->getColor() == getCurrentColor()) {
+    if (m_startNode->m_riverColor == getCurrentColor()
+        && m_endNode->m_riverColor == getCurrentColor()) {
         // check for completed path
         checkForCompletedPath();
     }
@@ -237,12 +244,12 @@ void Grid::checkForCompletedPath()
 {
     auto const primary = getCurrentPrimaryHub();
     auto const secondary = m_secondaryHubs.back();
-    for (auto& t : m_tiles) {
+    for (auto& t : m_nodeList) {
         t->reset();
     }
     auto path = jt::pathfinder::calculatePath(primary->getNode(), secondary->getNode());
     if (path.size() == 0) {
-        getGame()->logger().debug("no path found");
+        getGame()->logger().verbose("no path found");
     } else {
         getGame()->logger().info("path completed");
         pathCompleted();
@@ -251,7 +258,7 @@ void Grid::checkForCompletedPath()
 std::shared_ptr<jt::tilemap::TileNode> Grid::getCurrentPrimaryHub()
 {
     auto const primary_it = std::find_if(m_primaryHubs.begin(), m_primaryHubs.end(),
-        [this](auto t) { return t->getDrawable()->getColor() == getCurrentColor(); });
+        [this](auto t) { return t->m_riverColor == getCurrentColor(); });
     if (primary_it == m_primaryHubs.end()) {
         throw std::invalid_argument { "no primary hub found" };
     }
@@ -360,7 +367,7 @@ void Grid::highlightTileUnderCursor()
 
 void Grid::doDraw() const
 {
-    for (auto& tile : m_tiles) {
+    for (auto& tile : m_nodeList) {
         tile->getDrawable()->draw(renderTarget());
     }
 
@@ -387,16 +394,17 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getTileAt(int x, int y)
         return nullptr;
     }
     int const index = y + x * m_mapSizeY;
-    if (static_cast<std::size_t>(index) >= m_tiles.size()) {
+    if (static_cast<std::size_t>(index) >= m_nodeList.size()) {
         return nullptr;
     }
-    return m_tiles.at(index);
+    return m_nodeList.at(index);
 }
 
 void Grid::createTiles()
 {
     float const distX = GP::GetScreenSize().x / m_mapSizeX;
     float const distY = GP::GetScreenSize().y / m_mapSizeY;
+    float const maxHeight = m_mapSizeX + m_mapSizeY;
     for (int i = 0; i != m_mapSizeX; ++i) {
         for (int j = 0; j != m_mapSizeY; ++j) {
             std::shared_ptr<jt::Shape> drawable
@@ -404,11 +412,16 @@ void Grid::createTiles()
             //            drawable->setOffset(jt::OffsetMode::CENTER);
             drawable->setOrigin(jt::OriginMode::CENTER);
             drawable->setPosition(jt::Vector2f { i * distX, j * distY });
+            std::uint8_t v = static_cast<std::uint8_t>(static_cast<float>(i + j) / maxHeight * 255);
+            jt::Color c { v, v, v, 255 };
+            drawable->setColor(c);
             auto node = std::make_shared<jt::pathfinder::Node>();
             node->setPosition(
                 jt::Vector2u { static_cast<unsigned int>(i), static_cast<unsigned int>(j) });
 
-            m_tiles.emplace_back(std::make_shared<jt::tilemap::TileNode>(drawable, node));
+            auto tileNode = std::make_shared<jt::tilemap::TileNode>(drawable, node);
+            tileNode->setHeight(i + j);
+            m_nodeList.emplace_back(tileNode);
         }
     }
 }

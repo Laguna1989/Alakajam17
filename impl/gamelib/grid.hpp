@@ -21,13 +21,13 @@ public:
 
 private:
     int const m_mapSizeX = 20;
-    int const m_mapSizeY = 15;
+    int const m_mapSizeY = 14;
     std::vector<std::shared_ptr<jt::Shape>> m_shapes {};
     std::shared_ptr<jt::Shape> m_currentShape { nullptr };
     std::shared_ptr<jt::tilemap::TileNode> m_startNode { nullptr };
     std::shared_ptr<jt::tilemap::TileNode> m_endNode { nullptr };
 
-    std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_tiles {};
+    std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_nodeList {};
 
     std::size_t m_currentColorIndex { 0u };
     // TODO fill this with palette colors

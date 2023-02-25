@@ -21,3 +21,5 @@ void jt::tilemap::TileNode::reset()
         m_node->unvisit();
     }
 }
+float jt::tilemap::TileNode::getHeight() const { return m_height; }
+void jt::tilemap::TileNode::setHeight(float mHeight) { m_height = mHeight; }
