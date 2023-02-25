@@ -38,6 +38,14 @@ void Grid::switchToNextColor()
 
 void Grid::handleSpawnConnectionInput()
 {
+    if (getGame()->input().mouse()->justPressed(jt::MouseButtonCode::MBRight)) {
+        getGame()->logger().info("reset connection", { "grid" });
+        m_currentShape = nullptr;
+        m_startNode = nullptr;
+        m_endNode = nullptr;
+        return;
+    }
+
     if (getGame()->input().mouse()->justPressed(jt::MouseButtonCode::MBLeft)) {
         if (m_currentShape == nullptr) {
 
