@@ -33,6 +33,11 @@ private:
     // TODO fill this with palette colors
     std::vector<jt::Color> m_allColors { jt::colors::Blue, jt::colors::Red, jt::colors::Green };
 
+    std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_primaryHubs {};
+    std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_secondaryHubs {};
+
+    int m_pathsCompleted { 0 };
+
     void doCreate() override;
     void doUpdate(float const elapsed) override;
     void doDraw() const override;
@@ -42,6 +47,10 @@ private:
     void handleSpawnConnectionInput();
     void updateCurrentShapeIfSet(float const elapsed);
     void spawnConnection();
+    void createPrimaryHub();
+    void createSecondaryHub();
+    void checkForCompletedPath();
+    void pathCompleted();
 };
 
 #endif // ALAKAJAM17_GRID_HPP

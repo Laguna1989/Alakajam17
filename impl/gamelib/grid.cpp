@@ -4,8 +4,48 @@
 #include <game_properties.hpp>
 #include <math_helper.hpp>
 #include <pathfinder/node.hpp>
+#include <pathfinder/pathfinder.hpp>
+#include <system_helper.hpp>
 
-void Grid::doCreate() { createTiles(); }
+void Grid::doCreate()
+{
+    createTiles();
+    createPrimaryHub();
+    createSecondaryHub();
+}
+
+void Grid::createPrimaryHub()
+{
+    std::shared_ptr<jt::tilemap::TileNode> hub { nullptr };
+    while (true) {
+        hub = *jt::SystemHelper::select_randomly(m_tiles.begin(), m_tiles.end());
+        if (hub->getDrawable()->getColor() != jt::colors::White) {
+            hub = nullptr;
+            continue;
+        }
+
+        break;
+    }
+    hub->getDrawable()->setColor(getCurrentColor());
+    m_primaryHubs.push_back(hub);
+}
+
+void Grid::createSecondaryHub()
+{
+    std::shared_ptr<jt::tilemap::TileNode> hub { nullptr };
+    while (true) {
+        hub = *jt::SystemHelper::select_randomly(m_tiles.begin(), m_tiles.end());
+        if (hub->getDrawable()->getColor() != jt::colors::White) {
+            hub = nullptr;
+            continue;
+        }
+
+        break;
+    }
+    hub->getDrawable()->setColor(getCurrentColor());
+    m_secondaryHubs.push_back(hub);
+}
+
 void Grid::doUpdate(float const elapsed)
 {
     handleSpawnConnectionInput();
@@ -18,6 +58,14 @@ void Grid::doUpdate(float const elapsed)
     for (auto& tile : m_tiles) {
         tile->getDrawable()->setScale(jt::Vector2f { 1.0f, 1.0f });
         tile->getDrawable()->update(elapsed);
+    }
+
+    for (auto& ph : m_primaryHubs) {
+        ph->getDrawable()->setScale(jt::Vector2f { 4.0f, 4.0f });
+    }
+
+    for (auto& ph : m_secondaryHubs) {
+        ph->getDrawable()->setScale(jt::Vector2f { 2.0f, 2.0f });
     }
 
     highlightTileUnderCursor();
@@ -102,6 +150,13 @@ void Grid::spawnConnection()
     m_startNode->getNode()->addNeighbour(m_endNode->getNode());
     m_endNode->getNode()->addNeighbour(m_startNode->getNode());
 
+    // check if a connection is closed
+    if (m_startNode->getDrawable()->getColor() == getCurrentColor()
+        && m_endNode->getDrawable()->getColor() == getCurrentColor()) {
+        // check for completed path
+        checkForCompletedPath();
+    }
+
     // color nodes
     m_startNode->getDrawable()->setColor(getCurrentColor());
     m_endNode->getDrawable()->setColor(getCurrentColor());
@@ -112,6 +167,30 @@ void Grid::spawnConnection()
     m_currentShape = nullptr;
     m_startNode = nullptr;
     m_endNode = nullptr;
+}
+
+void Grid::checkForCompletedPath()
+{
+    auto const primary = m_primaryHubs.at(0);
+    auto const secondary = m_secondaryHubs.back();
+    for (auto& t : m_tiles) {
+        t->reset();
+    }
+    auto path = jt::pathfinder::calculatePath(primary->getNode(), secondary->getNode());
+    if (path.size() == 0) {
+        getGame()->logger().info("no path found");
+    } else {
+        getGame()->logger().info("path completed");
+        pathCompleted();
+    }
+}
+
+void Grid::pathCompleted()
+{
+    m_pathsCompleted++;
+    if (m_pathsCompleted == 1 || m_pathsCompleted == 2) {
+        createSecondaryHub();
+    }
 }
 
 std::shared_ptr<jt::tilemap::TileNode> Grid::getPossibleEndTile(jt::Vector2f const& pos)
@@ -188,7 +267,13 @@ void Grid::highlightTileUnderCursor()
         return;
     }
 
-    tileUnderCursor->getDrawable()->setScale(jt::Vector2f { 1.5f, 1.5f });
+    if (std::count(m_primaryHubs.begin(), m_primaryHubs.end(), tileUnderCursor) == 1) {
+        tileUnderCursor->getDrawable()->setScale(jt::Vector2f { 4.5f, 4.5f });
+    } else if (std::count(m_secondaryHubs.begin(), m_secondaryHubs.end(), tileUnderCursor) == 1) {
+        tileUnderCursor->getDrawable()->setScale(jt::Vector2f { 2.5f, 2.5f });
+    } else {
+        tileUnderCursor->getDrawable()->setScale(jt::Vector2f { 1.5f, 1.5f });
+    }
 }
 
 void Grid::doDraw() const
