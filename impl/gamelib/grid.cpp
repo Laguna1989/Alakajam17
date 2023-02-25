@@ -25,7 +25,7 @@ void Grid::createPrimaryHub()
     int counter = 0;
     while (true) {
         counter++;
-        if (counter >= 100) {
+        if (counter >= 200) {
             getGame()->logger().info("no place for primary hub found", { "grid" });
             // TODO
             break;
@@ -36,18 +36,23 @@ void Grid::createPrimaryHub()
             continue;
         }
         auto const tileposX = hub->getNode()->getTilePosition().x;
-        if (tileposX == 0 || tileposX == m_mapSizeX || tileposX == m_mapSizeX - 1) {
+        if (tileposX == 0 || tileposX == m_mapSizeX - 1) {
             hub = nullptr;
             continue;
         }
         auto const tileposY = hub->getNode()->getTilePosition().y;
-        if (tileposY == 0 || tileposY == m_mapSizeY || tileposY == m_mapSizeY - 1) {
+        if (tileposY == 0 || tileposY == m_mapSizeY - 1) {
             hub = nullptr;
             continue;
         }
 
-        // do not spawn close to other primary hub
-        if (counter <= 90) {
+        if (counter < 90) {
+            // move two steps upwards
+            hub = move_up_one_step(hub);
+        }
+
+        if (counter < 95) {
+            // do not spawn close to other primary hub
             bool tooClose { false };
             for (auto otherPrimaryHub : m_primaryHubs) {
                 auto const phPos = otherPrimaryHub->getNode()->getTilePosition();
@@ -63,12 +68,38 @@ void Grid::createPrimaryHub()
                 continue;
             }
         }
-
         break;
     }
-    hub->m_riverColor = getCurrentColor();
+
     hub->setHeight(9999999);
+    hub->m_riverColor = getCurrentColor();
     m_primaryHubs.push_back(hub);
+}
+std::shared_ptr<jt::tilemap::TileNode>& Grid::move_up_one_step(
+    std::shared_ptr<jt::tilemap::TileNode>& hub)
+{
+    auto const hubPos = hub->getNode()->getTilePosition();
+    std::shared_ptr<jt::tilemap::TileNode> otherTileMax { nullptr };
+    float maxFoundHeight = hub->getHeight();
+    for (int i : { -1, 0, 1 }) {
+        for (int j : { -1, 0, 1 }) {
+            if (i == 0 && j == 0) {
+                continue;
+            }
+            auto other = getTileAt(hubPos.x + i, hubPos.y + j);
+            if (!other) {
+                continue;
+            }
+            if (other->getHeight() > maxFoundHeight) {
+                maxFoundHeight = other->getHeight();
+                otherTileMax = other;
+            }
+        }
+    }
+    if (otherTileMax) {
+        hub = otherTileMax;
+    }
+    return hub;
 }
 
 void Grid::createSecondaryHub()
@@ -78,7 +109,7 @@ void Grid::createSecondaryHub()
     int counter = 0;
     while (true) {
         counter++;
-        if (counter >= 100) {
+        if (counter >= 200) {
             getGame()->logger().info("no place for secondary hub found", { "grid" });
             // TODO
             break;
@@ -110,7 +141,33 @@ void Grid::createSecondaryHub()
             continue;
         }
 
-        // TODO check all surrounding nodes should be lower than surroundings of primary node
+        auto const hubPos = hub->getNode()->getTilePosition();
+        bool oneSimilarNeighbour { false };
+        int numberOfOtherNeighbours { 0 };
+        for (int i : { -1, 0, 1 }) {
+            for (int j : { -1, 0, 1 }) {
+                if (i == 0 && j == 0) {
+                    continue;
+                }
+                auto other = getTileAt(hubPos.x + i, hubPos.y + j);
+                if (!other) {
+                    continue;
+                }
+                if (other->m_riverColor == hub->m_riverColor) {
+                    oneSimilarNeighbour = true;
+                    break;
+                } else if (other->m_riverColor != jt::colors::White) {
+                    numberOfOtherNeighbours++;
+                }
+            }
+        }
+        if (oneSimilarNeighbour) {
+            break;
+        }
+        if (numberOfOtherNeighbours >= 6) {
+            hub = nullptr;
+            continue;
+        }
 
         break;
     }
@@ -129,7 +186,12 @@ void Grid::doUpdate(float const elapsed)
         shp->update(elapsed);
     }
     for (auto& tile : m_nodeList) {
-        tile->getDrawable()->setScale(jt::Vector2f { 0.5f, 0.5f });
+        if (tile->m_riverColor == jt::colors::White) {
+            tile->getDrawable()->setScale(jt::Vector2f { 0.5f, 0.5f });
+        } else {
+            tile->getDrawable()->setScale(jt::Vector2f { 2.0f, 2.0f });
+            tile->getDrawable()->setColor(tile->m_riverColor);
+        }
         tile->getDrawable()->update(elapsed);
     }
 
@@ -221,8 +283,10 @@ void Grid::handleSpawnConnectionInput()
             if (endColor != jt::colors::White && endColor != getCurrentColor()) {
                 return;
             }
-            if (m_startNode->getHeight() < m_endNode->getHeight()) {
-                return;
+            if (std::count(m_secondaryHubs.begin(), m_secondaryHubs.end(), m_startNode) == 0) {
+                if (m_startNode->getHeight() < m_endNode->getHeight()) {
+                    return;
+                }
             }
 
             spawnConnection();
@@ -297,11 +361,11 @@ void Grid::pathCompleted()
 
     if (m_pathsCompleted % 3 == 0) {
         switchToNextColor();
-        if (m_primaryHubs.size() < 3) {
+        if (m_primaryHubs.size() < m_allColors.size()) {
             createPrimaryHub();
         }
     }
-    if (m_pathsCompleted % 8 == 0) {
+    if (m_pathsCompleted % 10 == 0) {
         m_allowedMaxDistanceToPrimaryHub++;
     }
     createSecondaryHub();

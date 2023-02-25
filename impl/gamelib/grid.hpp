@@ -2,6 +2,7 @@
 #define ALAKAJAM17_GRID_HPP
 
 #include <game_object.hpp>
+#include <game_properties.hpp>
 #include <shape.hpp>
 #include <tilemap/tile_node.hpp>
 #include <vector.hpp>
@@ -31,7 +32,9 @@ private:
 
     std::size_t m_currentColorIndex { 0u };
     // TODO fill this with palette colors
-    std::vector<jt::Color> m_allColors { jt::colors::Blue, jt::colors::Red, jt::colors::Green };
+    std::vector<jt::Color> m_allColors { GP::getPalette().getColor(10),
+        GP::getPalette().getColor(13), GP::getPalette().getColor(15), GP::getPalette().getColor(21),
+        GP::getPalette().getColor(30) };
 
     std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_primaryHubs {};
     std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_secondaryHubs {};
@@ -53,6 +56,8 @@ private:
     void checkForCompletedPath();
     void pathCompleted();
     std::shared_ptr<jt::tilemap::TileNode> getCurrentPrimaryHub();
+    std::shared_ptr<jt::tilemap::TileNode>& move_up_one_step(
+        std::shared_ptr<jt::tilemap::TileNode>& hub);
 };
 
 #endif // ALAKAJAM17_GRID_HPP

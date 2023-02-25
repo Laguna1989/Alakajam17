@@ -1,6 +1,7 @@
 ﻿#include "state_game.hpp"
 #include <box2dwrapper/box2d_world_impl.hpp>
 #include <color/color.hpp>
+#include <color/color_conversions.hpp>
 #include <game_interface.hpp>
 #include <game_properties.hpp>
 #include <hud/hud.hpp>
@@ -20,7 +21,16 @@ void StateGame::doInternalCreate()
 
     m_background = std::make_shared<Shape>();
     m_background->makeRect({ w, h }, textureManager());
-    m_background->setColor(GP::PaletteBackground());
+    auto colrgb = GP::getPalette().getColor(8);
+    auto colhsv = jt::ColorConversions::rgb2hsv(colrgb.r, colrgb.g, colrgb.b);
+    std::get<1>(colhsv) *= 0.25f;
+    auto colrgb2 = jt::ColorConversions::hsv2rgb(
+        std::get<0>(colhsv), std::get<1>(colhsv), std::get<2>(colhsv));
+    colrgb.r = std::get<0>(colrgb2);
+    colrgb.g = std::get<1>(colrgb2);
+    colrgb.b = std::get<2>(colrgb2);
+
+    m_background->setColor(colrgb);
     m_background->setIgnoreCamMovement(true);
     m_background->update(0.0f);
 
