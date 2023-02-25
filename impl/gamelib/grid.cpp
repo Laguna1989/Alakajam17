@@ -8,33 +8,9 @@
 void Grid::doCreate() { createTiles(); }
 void Grid::doUpdate(float const elapsed)
 {
-    if (getGame()->input().mouse()->justPressed(jt::MouseButtonCode::MBLeft)) {
-        if (m_currentShape == nullptr) {
-            m_currentShape = std::make_shared<jt::Shape>();
-            m_currentShape->makeRect(jt::Vector2f { 100.0f, 10.0f }, textureManager());
-            m_shapeStart = getGame()->input().mouse()->getMousePositionWorld();
-            m_currentShape->setPosition(m_shapeStart);
-            m_currentShape->setOrigin(jt::Vector2f { 5.0f, 5.0f });
-        } else {
-            m_shapes.push_back(m_currentShape);
-            m_currentShape->setColor(jt::colors::Blue);
-            m_currentShape = nullptr;
-        }
-    }
+    handleSpawnConnectionInput();
 
-    if (m_currentShape) {
-        auto const dif = getGame()->input().mouse()->getMousePositionWorld() - m_shapeStart;
-        auto const dist = jt::MathHelper::length(dif);
-        auto scaleX = dist / 100;
-        if (scaleX >= 1.0f) {
-            scaleX = 1.0f;
-        }
-
-        m_currentShape->setScale(jt::Vector2f { scaleX, 1.0f });
-        float const angle = jt::MathHelper::angleOf(dif);
-        m_currentShape->setRotation(angle);
-        m_currentShape->update(elapsed);
-    }
+    updateCurrentShapeIfSet(elapsed);
 
     for (auto& shp : m_shapes) {
         shp->update(elapsed);
@@ -44,19 +20,65 @@ void Grid::doUpdate(float const elapsed)
         tile->getDrawable()->update(elapsed);
     }
 
-    highlightTileUnderCurosr();
+    highlightTileUnderCursor();
 }
-void Grid::highlightTileUnderCurosr()
+void Grid::updateCurrentShapeIfSet(float const elapsed)
+{
+    if (!m_currentShape) {
+        return;
+    }
+
+    m_currentShape->update(elapsed);
+
+    auto const possibleTile = getClosestTileTo(getGame()->input().mouse()->getMousePositionWorld());
+    if (!possibleTile) {
+        return;
+    }
+    auto const targetPosition = possibleTile->getDrawable()->getPosition();
+    if (targetPosition == m_shapeStart) {
+        return;
+    }
+
+    auto const dif = targetPosition - m_shapeStart;
+    auto const dist = jt::MathHelper::length(dif);
+    auto scaleX = dist / 100;
+    if (scaleX >= 1.0f) {
+        scaleX = 1.0f;
+    }
+
+    m_currentShape->setScale(jt::Vector2f { scaleX, 1.0f });
+    float const angle = jt::MathHelper::angleOf(dif);
+    m_currentShape->setRotation(angle);
+}
+
+void Grid::handleSpawnConnectionInput()
+{
+    if (getGame()->input().mouse()->justPressed(jt::MouseButtonCode::MBLeft)) {
+        if (m_currentShape == nullptr) {
+
+            auto const possibleTile
+                = getClosestTileTo(getGame()->input().mouse()->getMousePositionWorld());
+            if (!possibleTile) {
+                return;
+            }
+
+            m_currentShape = std::make_shared<jt::Shape>();
+            m_currentShape->makeRect(jt::Vector2f { 100.0f, 10.0f }, textureManager());
+            m_shapeStart = possibleTile->getDrawable()->getPosition();
+            m_currentShape->setPosition(m_shapeStart);
+            m_currentShape->setOrigin(jt::Vector2f { 5.0f, 5.0f });
+        } else {
+            m_shapes.push_back(m_currentShape);
+            m_currentShape->setColor(jt::colors::Blue);
+            m_currentShape = nullptr;
+        }
+    }
+}
+void Grid::highlightTileUnderCursor()
 {
     auto const mousePosition = getGame()->input().mouse()->getMousePositionWorld();
     auto const tileUnderCursor = getClosestTileTo(mousePosition);
     if (!tileUnderCursor) {
-        return;
-    }
-
-    auto const dif = tileUnderCursor->getDrawable()->getPosition() - mousePosition;
-    auto const dist = jt::MathHelper::lengthSquared(dif);
-    if (dist > 10 * 10) {
         return;
     }
 
@@ -76,6 +98,7 @@ void Grid::doDraw() const
         m_currentShape->draw(renderTarget());
     }
 }
+
 std::shared_ptr<jt::tilemap::TileNode> Grid::getTileAt(int x, int y)
 {
     if (x < 0) {
@@ -114,18 +137,6 @@ void Grid::createTiles()
             m_tiles.emplace_back(std::make_shared<jt::tilemap::TileNode>(drawable, node));
         }
     }
-
-    for (int i = 5; i != 10; ++i) {
-        getTileAt(i, 6)->setBlocked(true);
-    }
-    getTileAt(5, 0)->setBlocked(true);
-    getTileAt(5, 1)->setBlocked(true);
-    getTileAt(5, 2)->setBlocked(true);
-    getTileAt(5, 3)->setBlocked(true);
-    getTileAt(5, 4)->setBlocked(true);
-    getTileAt(5, 5)->setBlocked(true);
-
-    getTileAt(9, 5)->setBlocked(true);
 }
 
 std::shared_ptr<jt::tilemap::TileNode> Grid::getClosestTileTo(jt::Vector2f const& pos)
@@ -135,5 +146,13 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getClosestTileTo(jt::Vector2f const
 
     auto const posIntX = static_cast<int>((pos.x + distX / 2) / distX);
     auto const posIntY = static_cast<int>((pos.y + distY / 2) / distY);
-    return getTileAt(posIntX, posIntY);
+
+    auto tile = getTileAt(posIntX, posIntY);
+    auto const dif
+        = tile->getDrawable()->getPosition() - getGame()->input().mouse()->getMousePositionWorld();
+    auto const dist = jt::MathHelper::lengthSquared(dif);
+    if (dist > 15 * 15) {
+        return nullptr;
+    }
+    return tile;
 }

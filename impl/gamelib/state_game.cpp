@@ -34,6 +34,8 @@ void StateGame::doInternalCreate()
 
     // StateGame will call drawObjects itself.
     setAutoDraw(false);
+
+    getGame()->gfx().camera().move(jt::Vector2f { -15.0f, -25.0f });
 }
 
 void StateGame::createGrid()

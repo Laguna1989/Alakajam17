@@ -27,7 +27,9 @@ private:
     void doDraw() const override;
 
     void createTiles();
-    void highlightTileUnderCurosr();
+    void highlightTileUnderCursor();
+    void handleSpawnConnectionInput();
+    void updateCurrentShapeIfSet(float const elapsed);
 };
 
 #endif // ALAKAJAM17_GRID_HPP

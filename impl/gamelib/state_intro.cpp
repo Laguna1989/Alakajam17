@@ -31,7 +31,14 @@ void StateIntro::doInternalCreate()
 
 void StateIntro::doInternalUpdate(float elapsed)
 {
+
     m_sprite->update(elapsed);
+    auto const keysToTriggerTransition = { jt::KeyCode::Space, jt::KeyCode::Enter };
+
+    if (std::any_of(keysToTriggerTransition.begin(), keysToTriggerTransition.end(),
+            [this](auto const k) { return getGame()->input().keyboard()->justPressed(k); })) {
+        getGame()->stateManager().switchState(std::make_shared<StateMenu>());
+    }
     if (getAge() >= 1.7) {
         getGame()->stateManager().switchState(std::make_shared<StateMenu>());
     }
