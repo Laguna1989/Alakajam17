@@ -217,22 +217,19 @@ void Grid::handleSpawnConnectionInput()
 
     if (getGame()->input().mouse()->justPressed(jt::MouseButtonCode::MBLeft)) {
         if (m_currentShape == nullptr) {
-
-            auto const possibleNode
-                = getClosestTileTo(getGame()->input().mouse()->getMousePositionWorld());
-            if (!possibleNode) {
+            m_startNode = getClosestTileTo(getGame()->input().mouse()->getMousePositionWorld());
+            if (!m_startNode) {
                 return;
             }
-
-            m_currentShape = std::make_shared<jt::Shape>();
-            m_currentShape->makeRect(jt::Vector2f { 100.0f, 10.0f }, textureManager());
-            m_startNode = possibleNode;
             if (!m_startNode) {
                 return;
             }
             if (m_startNode->m_riverColor == jt::colors::White) {
                 return;
             }
+            m_currentShape = std::make_shared<jt::Shape>();
+            m_currentShape->makeRect(jt::Vector2f { 100.0f, 10.0f }, textureManager());
+
             m_currentDrawColor = m_startNode->m_riverColor;
             m_currentShape->setPosition(m_startNode->getDrawable()->getPosition());
             m_currentShape->setOrigin(jt::Vector2f { 5.0f, 5.0f });
