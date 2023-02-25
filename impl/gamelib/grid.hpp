@@ -33,6 +33,7 @@ private:
     void highlightTileUnderCursor();
     void handleSpawnConnectionInput();
     void updateCurrentShapeIfSet(float const elapsed);
+    void spawnConnection();
 };
 
 #endif // ALAKAJAM17_GRID_HPP

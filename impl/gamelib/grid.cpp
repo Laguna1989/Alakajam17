@@ -52,12 +52,28 @@ void Grid::handleSpawnConnectionInput()
             if (m_shapeStartNode == m_shapeEndNode) {
                 return;
             }
-            m_shapes.push_back(m_currentShape);
-            m_currentShape->setColor(jt::colors::Blue);
-            m_currentShape = nullptr;
-            m_shapeStartNode = nullptr;
+
+            spawnConnection();
         }
     }
+}
+
+void Grid::spawnConnection()
+{
+    std::string startPosString = "("
+        + std::to_string(static_cast<int>(m_shapeStartNode->getNode()->getTilePosition().x)) + ", "
+        + std::to_string(static_cast<int>(m_shapeStartNode->getNode()->getTilePosition().y)) + ")";
+    std::string endPosString = "("
+        + std::to_string(static_cast<int>(m_shapeEndNode->getNode()->getTilePosition().x)) + ", "
+        + std::to_string(static_cast<int>(m_shapeEndNode->getNode()->getTilePosition().y)) + ")";
+    getGame()->logger().info(
+        "Spawn connection between " + startPosString + " - " + endPosString, { "grid" });
+    m_shapes.push_back(m_currentShape);
+    m_currentShape->setColor(jt::colors::Blue);
+
+    m_currentShape = nullptr;
+    m_shapeStartNode = nullptr;
+    m_shapeEndNode = nullptr;
 }
 
 std::shared_ptr<jt::tilemap::TileNode> Grid::getPossibleEndTile(jt::Vector2f const& pos)
@@ -75,7 +91,7 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getPossibleEndTile(jt::Vector2f con
 
     auto const distX = static_cast<int>(endTilepos.x) - static_cast<int>(startTilepos.x);
     auto const distY = static_cast<int>(endTilepos.y) - static_cast<int>(startTilepos.y);
-    std::cout << distX << " " << distY << std::endl;
+    //    std::cout << distX << " " << distY << std::endl;
 
     if (distX < -1 || distX > 1) {
         return nullptr;
