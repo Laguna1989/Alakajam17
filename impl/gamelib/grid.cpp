@@ -256,18 +256,22 @@ void Grid::handleSpawnConnectionInput()
     if (getGame()->input().mouse()->justPressed(jt::MouseButtonCode::MBLeft)) {
         if (m_currentShape == nullptr) {
 
-            auto const possibleTile
+            auto const possibleNode
                 = getClosestTileTo(getGame()->input().mouse()->getMousePositionWorld());
-            if (!possibleTile) {
+            if (!possibleNode) {
                 return;
             }
 
             m_currentShape = std::make_shared<jt::Shape>();
             m_currentShape->makeRect(jt::Vector2f { 100.0f, 10.0f }, textureManager());
-            m_startNode = possibleTile;
+            m_startNode = possibleNode;
             if (!m_startNode) {
                 return;
             }
+            if (m_startNode->m_riverColor == jt::colors::White) {
+                return;
+            }
+            m_currentDrawColor = m_startNode->m_riverColor;
             m_currentShape->setPosition(m_startNode->getDrawable()->getPosition());
             m_currentShape->setOrigin(jt::Vector2f { 5.0f, 5.0f });
         } else {
@@ -275,9 +279,6 @@ void Grid::handleSpawnConnectionInput()
                 return;
             }
             if (!m_startNode) {
-                return;
-            }
-            if (m_startNode->m_riverColor != getCurrentSpawnColor()) {
                 return;
             }
             if (m_startNode == m_endNode) {
@@ -298,11 +299,8 @@ void Grid::handleSpawnConnectionInput()
                 { "grid" });
 
             auto const startColor = m_startNode->m_riverColor;
-            if (startColor != jt::colors::White && startColor != getCurrentSpawnColor()) {
-                return;
-            }
             auto const endColor = m_endNode->m_riverColor;
-            if (endColor != jt::colors::White && endColor != getCurrentSpawnColor()) {
+            if (endColor != jt::colors::White && endColor != startColor) {
                 return;
             }
             if (std::count(m_secondaryHubs.begin(), m_secondaryHubs.end(), m_startNode) == 0) {
@@ -334,9 +332,9 @@ void Grid::spawnConnection()
     m_endNode->getNode()->addNeighbour(m_startNode->getNode());
 
     // color nodes
-    m_startNode->m_riverColor = getCurrentSpawnColor();
-    m_endNode->m_riverColor = getCurrentSpawnColor();
-    m_currentShape->setColor(getCurrentSpawnColor());
+    m_startNode->m_riverColor = getCurrentDrawColor();
+    m_endNode->m_riverColor = getCurrentDrawColor();
+    m_currentShape->setColor(getCurrentDrawColor());
 
     // check if a connection is closed
     if (m_startNode->m_riverColor == getCurrentSpawnColor()
@@ -588,3 +586,4 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getClosestTileTo(jt::Vector2f const
 }
 
 jt::Color Grid::getCurrentSpawnColor() const { return m_allColors.at(m_currentColorIndex); }
+jt::Color Grid::getCurrentDrawColor() const { return m_currentDrawColor; }

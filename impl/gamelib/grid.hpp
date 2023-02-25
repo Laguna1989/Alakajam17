@@ -17,6 +17,7 @@ public:
     std::shared_ptr<jt::tilemap::TileNode> getPossibleEndTile(jt::Vector2f const& pos);
 
     jt::Color getCurrentSpawnColor() const;
+    jt::Color getCurrentDrawColor() const;
 
     void switchToNextColor();
 
@@ -41,6 +42,7 @@ private:
 
     int m_pathsCompleted { 0 };
     int m_allowedMaxDistanceToPrimaryHub { 2 };
+    jt::Color m_currentDrawColor;
 
     void doCreate() override;
     void doUpdate(float const elapsed) override;
