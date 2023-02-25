@@ -18,7 +18,8 @@ private:
     int const m_mapSizeY = 10;
     std::vector<std::shared_ptr<jt::Shape>> m_shapes {};
     std::shared_ptr<jt::Shape> m_currentShape { nullptr };
-    jt::Vector2f m_shapeStart { 0.0f, 0.0f };
+    std::shared_ptr<jt::tilemap::TileNode> m_shapeStartNode { nullptr };
+    jt::Vector2f m_shapeEnd { 0.0f, 0.0f };
 
     std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_tiles {};
 

@@ -22,34 +22,6 @@ void Grid::doUpdate(float const elapsed)
 
     highlightTileUnderCursor();
 }
-void Grid::updateCurrentShapeIfSet(float const elapsed)
-{
-    if (!m_currentShape) {
-        return;
-    }
-
-    m_currentShape->update(elapsed);
-
-    auto const possibleTile = getClosestTileTo(getGame()->input().mouse()->getMousePositionWorld());
-    if (!possibleTile) {
-        return;
-    }
-    auto const targetPosition = possibleTile->getDrawable()->getPosition();
-    if (targetPosition == m_shapeStart) {
-        return;
-    }
-
-    auto const dif = targetPosition - m_shapeStart;
-    auto const dist = jt::MathHelper::length(dif);
-    auto scaleX = dist / 100;
-    if (scaleX >= 1.0f) {
-        scaleX = 1.0f;
-    }
-
-    m_currentShape->setScale(jt::Vector2f { scaleX, 1.0f });
-    float const angle = jt::MathHelper::angleOf(dif);
-    m_currentShape->setRotation(angle);
-}
 
 void Grid::handleSpawnConnectionInput()
 {
@@ -64,16 +36,58 @@ void Grid::handleSpawnConnectionInput()
 
             m_currentShape = std::make_shared<jt::Shape>();
             m_currentShape->makeRect(jt::Vector2f { 100.0f, 10.0f }, textureManager());
-            m_shapeStart = possibleTile->getDrawable()->getPosition();
-            m_currentShape->setPosition(m_shapeStart);
+            m_shapeStartNode = possibleTile;
+            //            m_shapeStart = possibleTile->getDrawable()->getPosition();
+            m_currentShape->setPosition(m_shapeStartNode->getDrawable()->getPosition());
             m_currentShape->setOrigin(jt::Vector2f { 5.0f, 5.0f });
         } else {
+            if (m_currentShape->getScale().x == 0.0f || m_currentShape->getScale().y == 0.0f) {
+                return;
+            }
+            if (m_shapeStartNode->getDrawable()->getPosition() == m_shapeEnd) {
+                return;
+            }
             m_shapes.push_back(m_currentShape);
             m_currentShape->setColor(jt::colors::Blue);
             m_currentShape = nullptr;
         }
     }
 }
+
+void Grid::updateCurrentShapeIfSet(float const elapsed)
+{
+    if (!m_currentShape) {
+        return;
+    }
+
+    m_currentShape->update(elapsed);
+
+    auto const possibleTile = getClosestTileTo(getGame()->input().mouse()->getMousePositionWorld());
+
+    if (!possibleTile) {
+        m_shapeEnd = m_shapeStartNode->getDrawable()->getPosition();
+        m_currentShape->setScale(jt::Vector2f { 0.0f, 0.0f });
+        return;
+    }
+
+    m_shapeEnd = possibleTile->getDrawable()->getPosition();
+    if (m_shapeEnd == m_shapeStartNode->getDrawable()->getPosition()) {
+        m_currentShape->setScale(jt::Vector2f { 0.0f, 0.0f });
+        return;
+    }
+
+    auto const dif = m_shapeEnd - m_shapeStartNode->getDrawable()->getPosition();
+    auto const dist = jt::MathHelper::length(dif);
+    auto scaleX = dist / 100;
+    if (scaleX >= 1.0f) {
+        scaleX = 1.0f;
+    }
+
+    m_currentShape->setScale(jt::Vector2f { scaleX, 1.0f });
+    float const angle = jt::MathHelper::angleOf(dif);
+    m_currentShape->setRotation(angle);
+}
+
 void Grid::highlightTileUnderCursor()
 {
     auto const mousePosition = getGame()->input().mouse()->getMousePositionWorld();
@@ -119,6 +133,7 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getTileAt(int x, int y)
     }
     return m_tiles.at(index);
 }
+
 void Grid::createTiles()
 {
     float const distX = GP::GetScreenSize().x / m_mapSizeX;
@@ -147,11 +162,14 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getClosestTileTo(jt::Vector2f const
     auto const posIntX = static_cast<int>((pos.x + distX / 2) / distX);
     auto const posIntY = static_cast<int>((pos.y + distY / 2) / distY);
 
-    auto tile = getTileAt(posIntX, posIntY);
+    auto const tile = getTileAt(posIntX, posIntY);
+    if (!tile) {
+        return nullptr;
+    }
     auto const dif
         = tile->getDrawable()->getPosition() - getGame()->input().mouse()->getMousePositionWorld();
     auto const dist = jt::MathHelper::lengthSquared(dif);
-    if (dist > 15 * 15) {
+    if (dist > 18 * 18) {
         return nullptr;
     }
     return tile;
