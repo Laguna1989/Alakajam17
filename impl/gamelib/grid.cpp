@@ -154,12 +154,8 @@ void Grid::doUpdate(float const elapsed)
 
     m_spawnTimer += elapsed;
     float const maxSpawnTime = GetSpawnTime();
-    //    std::cout << m_spawnTimer << " / " << maxSpawnTime << "\n";
-    if (m_spawnTimer >= maxSpawnTime) {
-        //        getGame()->logger().debug(
-        //            "spawn secondary with GetSpawntimer of " + std::to_string(maxSpawnTime), {
-        //            "grid" });
 
+    if (m_spawnTimer >= maxSpawnTime) {
         createSecondaryHub();
     }
 
@@ -307,6 +303,16 @@ void Grid::handleSpawnConnectionInput()
             }
 
             spawnConnection();
+            m_startNode = m_endNode;
+            m_currentShape = std::make_shared<jt::Shape>();
+            m_currentShape->makeRect(jt::Vector2f { 100.0f, 10.0f }, textureManager());
+
+            m_currentDrawColor = m_startNode->m_riverColor;
+
+            m_currentShape->setPosition(m_startNode->getDrawable()->getPosition());
+            m_currentShape->setOrigin(jt::Vector2f { 5.0f, 5.0f });
+
+            m_endNode = nullptr;
         }
     }
 }
@@ -336,9 +342,6 @@ void Grid::spawnConnection()
     checkForCompletedPath();
 
     m_shapes.push_back(m_currentShape);
-    m_currentShape = nullptr;
-    m_startNode = nullptr;
-    m_endNode = nullptr;
 }
 
 void Grid::checkForCompletedPath()
