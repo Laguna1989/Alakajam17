@@ -42,6 +42,7 @@ private:
 
     void endGame();
     void createGrid();
+    void createParticleSystem();
 };
 
 #endif

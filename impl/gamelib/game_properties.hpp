@@ -19,7 +19,7 @@ public:
         return "Connect the new cities to the river sources before the source overflows\n[Left "
                "Click] to spawn/place "
                "connection\n[Right Click] to cancel building a connection\nYou can only connect "
-               "neighbours";
+               "neighbours\n[M/U] Mute/Umute audio";
     }
 
     static jt::Vector2f GetWindowSize() { return jt::Vector2f { 1200, 800 }; }

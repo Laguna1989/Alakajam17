@@ -1,6 +1,7 @@
 #ifndef ALAKAJAM17_GRID_HPP
 #define ALAKAJAM17_GRID_HPP
 
+#include "audio/sound_interface.hpp"
 #include <game_object.hpp>
 #include <game_properties.hpp>
 #include <shape.hpp>
@@ -58,6 +59,11 @@ private:
     float m_spawnTimer { 0.0f };
     float m_defaultSpawnTimer { 8.0f };
     int m_expectedUnconnectedSecondaryHubs { 1 };
+
+    std::shared_ptr<jt::SoundInterface> m_click;
+    std::shared_ptr<jt::SoundInterface> m_click2;
+    std::shared_ptr<jt::SoundInterface> m_bell;
+
     float GetSpawnTime();
 
     void doCreate() override;
@@ -68,10 +74,10 @@ private:
     void highlightTileUnderCursor();
     void handleSpawnConnectionInput();
     void updateCurrentShapeIfSet(float const elapsed);
-    void spawnConnection();
+    bool spawnConnection();
     void createPrimaryHub();
     void createSecondaryHub();
-    void checkForCompletedPath();
+    bool checkForCompletedPath();
     void pathCompleted();
 
     std::shared_ptr<jt::tilemap::TileNode> getRandomPrimaryHub();

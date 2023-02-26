@@ -1,4 +1,5 @@
 #include "grid.hpp"
+#include <audio/sound.hpp>
 #include <drawable_helpers.hpp>
 #include <game_interface.hpp>
 #include <game_properties.hpp>
@@ -10,8 +11,12 @@
 
 void Grid::doCreate()
 {
+    m_click = getGame()->audio().addTemporarySound("assets/sfx/click1.ogg");
+    m_click2 = getGame()->audio().addTemporarySound("assets/sfx/click2.ogg");
+    m_bell = getGame()->audio().addTemporarySound("assets/sfx/bell.ogg");
+    m_bell->setVolume(0.25f);
+
     createTiles();
-    //    std::cout << m_allColors.size() << std::endl;
     createPrimaryHub();
 
     createSecondaryHub();
@@ -220,6 +225,10 @@ void Grid::doUpdate(float const elapsed)
         && getGame()->input().keyboard()->justPressed(jt::KeyCode::C)) {
         switchToNextColor();
     }
+    if (m_startNode) {
+        m_startNode->getDrawable()->setColor(jt::colors::White);
+        m_startNode->getDrawable()->setScale(jt::Vector2f { 3.0f, 3.0f });
+    }
 }
 
 void Grid::fadeNodesBasedOnMouseDistance()
@@ -323,7 +332,7 @@ void Grid::handleSpawnConnectionInput()
     }
 }
 
-void Grid::spawnConnection()
+bool Grid::spawnConnection()
 {
     std::string startPosString = "("
         + std::to_string(static_cast<int>(m_startNode->getNode()->getTilePosition().x)) + ", "
@@ -343,14 +352,14 @@ void Grid::spawnConnection()
     m_endNode->m_riverColor = getCurrentDrawColor();
     m_currentShape->setColor(getCurrentDrawColor());
 
+    m_shapes.push_back(m_currentShape);
     // check if a connection is closed
     // check for completed path
-    checkForCompletedPath();
-
-    m_shapes.push_back(m_currentShape);
+    m_click->play();
+    return checkForCompletedPath();
 }
 
-void Grid::checkForCompletedPath()
+bool Grid::checkForCompletedPath()
 {
     for (auto secondary : m_secondaryHubs) {
         if (!secondary) {
@@ -371,8 +380,11 @@ void Grid::checkForCompletedPath()
             getGame()->logger().verbose("path completed");
             secondary->m_connected = true;
             pathCompleted();
+            m_bell->play();
+            return true;
         }
     }
+    return false;
 }
 
 std::shared_ptr<jt::tilemap::TileNode> Grid::getRandomPrimaryHub()

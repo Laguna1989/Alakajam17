@@ -33,6 +33,12 @@ void StateMenu::doInternalCreate()
 
     getGame()->stateManager().setTransition(std::make_shared<jt::StateManagerTransitionFadeToBlack>(
         GP::GetScreenSize(), textureManager()));
+
+    if (!getGame()->audio().getPermanentSound("bgm")) {
+        auto bgm = getGame()->audio().addPermanentSound("bgm", "assets/sfx/ost.ogg");
+        bgm->setLoop(true);
+        bgm->play();
+    }
 }
 
 void StateMenu::createVignette()
@@ -186,7 +192,13 @@ void StateMenu::doInternalUpdate(float const elapsed)
 {
     updateDrawables(elapsed);
     checkForTransitionToStateGame();
-    jt::Vector2f const& axis = getGame()->input().gamepad(0)->getAxis(jt::GamepadAxisCode::ARight);
+
+    if (getGame()->input().keyboard()->justPressed(jt::KeyCode::M)) {
+        getGame()->audio().groups().setGroupVolume("master", 0.0f);
+    }
+    if (getGame()->input().keyboard()->justPressed(jt::KeyCode::U)) {
+        getGame()->audio().groups().setGroupVolume("master", 1.0f);
+    }
 }
 
 void StateMenu::updateDrawables(const float& elapsed)

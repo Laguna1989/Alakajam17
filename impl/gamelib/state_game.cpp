@@ -31,6 +31,21 @@ void StateGame::doInternalCreate()
 
     createGrid();
 
+    createParticleSystem();
+
+    m_vignette = std::make_shared<jt::Vignette>(GP::GetScreenSize());
+    add(m_vignette);
+    m_hud = std::make_shared<Hud>();
+    add(m_hud);
+
+    // StateGame will call drawObjects itself.
+    setAutoDraw(false);
+
+    getGame()->gfx().camera().move(jt::Vector2f { -15.0f, -15.0f });
+}
+
+void StateGame::createParticleSystem()
+{
     m_spawnParticles = jt::ParticleSystem<jt::Shape, 100>::createPS(
         [this]() {
             auto s = jt::dh::createShapeCircle(5, jt::colors::White, textureManager());
@@ -47,7 +62,7 @@ void StateGame::doInternalCreate()
             s->setScale(jt::Vector2f { 0.1f, 0.1f });
 
             jt::TweenColor::Sptr twcl
-                = jt::TweenColor::create(s, 0.3f, jt::colors::White, this->m_particleColor);
+                = jt::TweenColor::create(s, 0.3f, jt::colors::White, m_particleColor);
             twcl->setStartDelay(0.5f);
             twcl->setSkipFrames(1);
             add(twcl);
@@ -73,15 +88,6 @@ void StateGame::doInternalCreate()
         m_particleColor = c;
         m_spawnParticles->fire(5, pos);
     });
-    m_vignette = std::make_shared<jt::Vignette>(GP::GetScreenSize());
-    add(m_vignette);
-    m_hud = std::make_shared<Hud>();
-    add(m_hud);
-
-    // StateGame will call drawObjects itself.
-    setAutoDraw(false);
-
-    getGame()->gfx().camera().move(jt::Vector2f { -15.0f, -15.0f });
 }
 
 void StateGame::createGrid()
@@ -96,6 +102,12 @@ void StateGame::doInternalUpdate(float const elapsed)
         // update game logic here
         m_hud->getObserverScoreP1()->notify(m_grid->getPathsCompleted());
         m_hud->getObserverTime()->notify(static_cast<int>(getAge()));
+        if (getGame()->input().keyboard()->justPressed(jt::KeyCode::M)) {
+            getGame()->audio().groups().setGroupVolume("master", 0.0f);
+        }
+        if (getGame()->input().keyboard()->justPressed(jt::KeyCode::U)) {
+            getGame()->audio().groups().setGroupVolume("master", 1.0f);
+        }
     }
 
     if (m_grid->m_endGame) {
