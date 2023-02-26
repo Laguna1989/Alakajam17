@@ -44,7 +44,7 @@ jobs:
           filename: 'release_win.zip'
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v0.1.13
         with:
           files: ${{github.workspace}}\release\release_win.zip
 
