@@ -35,18 +35,13 @@ jobs:
           mkdir ${{github.workspace}}/release/release_win
           cp ${{github.workspace}}/build/impl/game/Release/*.exe ${{github.workspace}}/release/release_win/
           cp -r ${{github.workspace}}/build/impl/game/assets ${{github.workspace}}/release/release_win/
-          ls ${{github.workspace}}/release/release_win/
 
       - name: Create Archive
-        uses: thedoctor0/zip-release@master
+        uses: thedoctor0/zip-release@0.6.2
         with:
           directory: ${{github.workspace}}/release
           type: 'zip'
           filename: 'release_win.zip'
-
-      - name: Check archive
-        run: |
-          ls ${{github.workspace}}/release
 
       - name: Release
         uses: softprops/action-gh-release@v1
