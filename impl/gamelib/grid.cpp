@@ -71,6 +71,7 @@ void Grid::createPrimaryHub()
 
 void Grid::createSecondaryHub()
 {
+    m_spawnTimer = 0.0f;
     std::shared_ptr<jt::tilemap::TileNode> hub { nullptr };
     int counter = 0;
     auto randomPrimaryHub
@@ -138,7 +139,11 @@ void Grid::createSecondaryHub()
     m_secondaryHubs.push_back(hub);
     std::stringstream ss;
     ss << hub->getNode()->getTilePosition();
-    getGame()->logger().info("create hub at " + ss.str(), { "grid" });
+    getGame()->logger().info("create secondary hub at " + ss.str(), { "grid" });
+
+    if (m_particleFunc) {
+        m_particleFunc(hub->getDrawable()->getPosition(), hub->m_riverColor);
+    }
 }
 
 void Grid::doUpdate(float const elapsed)
@@ -154,7 +159,7 @@ void Grid::doUpdate(float const elapsed)
         //        getGame()->logger().debug(
         //            "spawn secondary with GetSpawntimer of " + std::to_string(maxSpawnTime), {
         //            "grid" });
-        m_spawnTimer = 0.0f;
+
         createSecondaryHub();
     }
 
@@ -607,7 +612,12 @@ float Grid::GetSpawnTime()
     float ret = (float)(std::pow(
                     currentUnconnectedSecondaryHubs / m_expectedUnconnectedSecondaryHubs, exponent))
             * m_defaultSpawnTimer
-        + 1.0f;
+        + 1.5f;
     ret = jt::MathHelper::clamp(ret, 0.8f, 99999.0f);
     return ret;
+}
+void Grid::setSpawnParticlesCallback(
+    std::function<void(jt::Vector2f const&, jt::Color const&)> func)
+{
+    m_particleFunc = func;
 }
