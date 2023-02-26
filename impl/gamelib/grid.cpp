@@ -360,7 +360,7 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getRandomPrimaryHub()
 
 std::shared_ptr<jt::tilemap::TileNode> Grid::getPrimaryHubWithLeastSecondaries()
 {
-    int minimumConnectedSecondaries = 9999999;
+    int minimumConnectedSecondaries = 999999;
     std::shared_ptr<jt::tilemap::TileNode> primaryWithLeastSecondaries = nullptr;
     for (auto& primary : m_primaryHubs) {
         auto primaryHubColor = primary->m_riverColor;
@@ -418,7 +418,7 @@ void Grid::pathCompleted()
     if (m_pathsCompleted % 10 == 0) {
         m_allowedMaxDistanceToPrimaryHub++;
     }
-    m_expectedUnconnectedSecondaryHubs = 1 + m_pathsCompleted / 10;
+    m_expectedUnconnectedSecondaryHubs = 1 + m_pathsCompleted / 9;
 }
 
 std::shared_ptr<jt::tilemap::TileNode> Grid::getPossibleEndTile(jt::Vector2f const& pos)
@@ -604,7 +604,7 @@ float Grid::GetSpawnTime()
     float currentUnconnectedSecondaryHubs = std::count_if(
         m_secondaryHubs.begin(), m_secondaryHubs.end(), [](auto& sh) { return !sh->m_connected; });
     float expectedUnconnectedSecondaryHubs = m_expectedUnconnectedSecondaryHubs;
-    float exponent = 1.15f;
+    float exponent = 1.85f;
     float ret = (float)(std::pow(
                     currentUnconnectedSecondaryHubs / expectedUnconnectedSecondaryHubs, exponent))
             * m_defaultSpawnTimer

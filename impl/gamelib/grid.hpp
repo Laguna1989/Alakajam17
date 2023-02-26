@@ -52,7 +52,7 @@ private:
     float m_maxOverflowTimer { 35.0f };
 
     float m_spawnTimer { 0.0f };
-    float m_defaultSpawnTimer { 5.0f };
+    float m_defaultSpawnTimer { 4.0f };
     int m_expectedUnconnectedSecondaryHubs { 1 };
     float GetSpawnTime();
 
