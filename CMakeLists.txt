@@ -37,7 +37,7 @@ else ()
     if (MSVC)
         ## nasty warning 5205 from tileson should not show up,
         ## so the warning level of this one is set to 4 and the global warning level is set to three
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /w45205 /W3 /EHsc")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /w45205 /w44005 /W3 /EHsc")
     else ()
         if (NOT CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++fs")

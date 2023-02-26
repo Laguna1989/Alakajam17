@@ -604,6 +604,7 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getClosestTileTo(jt::Vector2f const
 jt::Color Grid::getCurrentSpawnColor() const { return m_allColors.at(m_currentColorIndex); }
 jt::Color Grid::getCurrentDrawColor() const { return m_currentDrawColor; }
 int Grid::getPathsCompleted() const { return m_pathsCompleted; }
+
 float Grid::GetSpawnTime()
 {
     float currentUnconnectedSecondaryHubs = static_cast<float>(std::count_if(
@@ -616,6 +617,7 @@ float Grid::GetSpawnTime()
     ret = jt::MathHelper::clamp(ret, 0.8f, 99999.0f);
     return ret;
 }
+
 void Grid::setSpawnParticlesCallback(
     std::function<void(jt::Vector2f const&, jt::Color const&)> func)
 {
