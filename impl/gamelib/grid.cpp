@@ -186,12 +186,20 @@ void Grid::doUpdate(float const elapsed)
             if (ph->m_overflowTimer < 0) {
                 ph->m_overflowTimer = 0;
             }
+            ph->m_overflowBar->setFrontColor(jt::colors::White);
         } else {
             ph->m_overflowTimer += (numberOfUnconnectedSecondaries - 1) * elapsed;
+            if (ph->m_overflowTimer >= 0.6f * m_maxOverflowTimer) {
+                ph->m_overflowBar->setFrontColor(jt::colors::Red);
+
+            } else {
+                ph->m_overflowBar->setFrontColor(jt::colors::White);
+            }
         }
 
         ph->m_overflowBar->setCurrentValue(ph->m_overflowTimer);
         ph->m_overflowBar->update(elapsed);
+
         if (ph->m_overflowTimer >= m_maxOverflowTimer) {
             m_endGame = true;
         }
