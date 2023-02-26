@@ -51,7 +51,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{github.workspace}}/release/release_win.zip
+          files: ${{github.workspace}}\release\release_win.zip
 
   LinuxSFML:
     runs-on: ubuntu-latest
