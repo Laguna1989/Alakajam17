@@ -26,7 +26,6 @@ void Grid::createPrimaryHub()
         counter++;
         if (counter >= 200) {
             getGame()->logger().info("no place for primary hub found", { "grid" });
-            // TODO
             break;
         }
         hub = *jt::SystemHelper::select_randomly(m_nodeList.begin(), m_nodeList.end());
@@ -81,7 +80,7 @@ void Grid::createSecondaryHub()
         counter++;
         if (counter >= 200) {
             getGame()->logger().warning("no place for secondary hub found", { "grid" });
-            // TODO
+            hub = nullptr;
             break;
         }
         hub = *jt::SystemHelper::select_randomly(m_nodeList.begin(), m_nodeList.end());
@@ -172,9 +171,16 @@ void Grid::doUpdate(float const elapsed)
         tile->getDrawable()->update(elapsed);
     }
 
+    auto const mousePos = getGame()->input().mouse()->getMousePositionWorld();
     for (auto& ph : m_primaryHubs) {
         ph->getDrawable()->setScale(jt::Vector2f { 4.0f, 4.0f });
         ph->getDrawable()->setColor(ph->m_riverColor);
+        auto const dif = mousePos - ph->getDrawable()->getPosition();
+        auto drawVec = jt::MathHelper::rotateBy(dif, 180.0f);
+        jt::MathHelper::normalizeMe(drawVec);
+        ph->m_overflowBar->setPosition(
+            ph->getDrawable()->getPosition() + jt::Vector2f { 10.0f, -6.0f } + drawVec * 30.0f);
+
         auto numberOfUnconnectedSecondaries
             = getUnconnectedSecondariesForPrimaryHubColor(ph->m_riverColor);
         if (numberOfUnconnectedSecondaries == 0 || numberOfUnconnectedSecondaries == 1) {
