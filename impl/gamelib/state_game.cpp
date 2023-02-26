@@ -19,7 +19,7 @@ void StateGame::doInternalCreate()
 
     m_background = std::make_shared<Shape>();
     m_background->makeRect({ w, h }, textureManager());
-    auto colrgb = GP::getPalette().getColor(15);
+    auto colrgb = GP::getPalette().getColor(12);
     m_background->setColor(colrgb);
     m_background->setIgnoreCamMovement(true);
     m_background->update(0.0f);
@@ -48,6 +48,7 @@ void StateGame::doInternalUpdate(float const elapsed)
     if (m_running) {
         // update game logic here
         m_hud->getObserverScoreP1()->notify(m_grid->getPathsCompleted());
+        m_hud->getObserverTime()->notify(static_cast<int>(getAge()));
     }
 
     if (m_grid->m_endGame) {

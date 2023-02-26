@@ -418,7 +418,7 @@ void Grid::pathCompleted()
     if (m_pathsCompleted % 10 == 0) {
         m_allowedMaxDistanceToPrimaryHub++;
     }
-    m_expectedUnconnectedSecondaryHubs = 1 + m_pathsCompleted / 9;
+    m_expectedUnconnectedSecondaryHubs = 2 + m_pathsCompleted / 12;
 }
 
 std::shared_ptr<jt::tilemap::TileNode> Grid::getPossibleEndTile(jt::Vector2f const& pos)
@@ -601,14 +601,13 @@ jt::Color Grid::getCurrentDrawColor() const { return m_currentDrawColor; }
 int Grid::getPathsCompleted() const { return m_pathsCompleted; }
 float Grid::GetSpawnTime()
 {
-    float currentUnconnectedSecondaryHubs = std::count_if(
-        m_secondaryHubs.begin(), m_secondaryHubs.end(), [](auto& sh) { return !sh->m_connected; });
-    float expectedUnconnectedSecondaryHubs = m_expectedUnconnectedSecondaryHubs;
-    float exponent = 1.85f;
+    float currentUnconnectedSecondaryHubs = static_cast<float>(std::count_if(
+        m_secondaryHubs.begin(), m_secondaryHubs.end(), [](auto& sh) { return !sh->m_connected; }));
+    float const exponent = 1.85f;
     float ret = (float)(std::pow(
-                    currentUnconnectedSecondaryHubs / expectedUnconnectedSecondaryHubs, exponent))
+                    currentUnconnectedSecondaryHubs / m_expectedUnconnectedSecondaryHubs, exponent))
             * m_defaultSpawnTimer
         + 1.0f;
-
+    ret = jt::MathHelper::clamp(ret, 0.8f, 99999.0f);
     return ret;
 }

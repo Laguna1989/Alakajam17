@@ -10,24 +10,26 @@ class GP {
 public:
     GP() = delete;
 
-    static std::string GameName() { return "MyAwesomeGame"; }
-    static std::string AuthorName() { return "TODO"; }
-    static std::string JamName() { return "TODO"; }
-    static std::string JamDate() { return "TODO"; }
+    static std::string GameName() { return "Nile River"; }
+    static std::string AuthorName() { return "Laguna_999"; }
+    static std::string JamName() { return "Alakajam 17"; }
+    static std::string JamDate() { return "2022-02"; }
     static std::string ExplanationText()
     {
-        return "Win the game\n[W,A,S,D] to move \n[Space] to jump";
+        return "Connect the new cities to the river sources before the source overflows\n[Left "
+               "Click] to spawn/place "
+               "connection\n[Right Click] to cancel connection\n[Space] to start";
     }
 
     static jt::Vector2f GetWindowSize() { return jt::Vector2f { 1200, 800 }; }
     static float GetZoom() { return 2.0f; }
     static jt::Vector2f GetScreenSize() { return GetWindowSize() * (1.0f / GetZoom()); }
 
-    static jt::Color PaletteBackground() { return GP::getPalette().getColor(5); }
-    static jt::Color PaletteFontFront() { return GP::getPalette().getColor(0); }
+    static jt::Color PaletteBackground() { return GP::getPalette().getColor(12); }
+    static jt::Color PaletteFontFront() { return GP::getPalette().getColor(6); }
     static jt::Color PalleteFrontHighlight() { return GP::getPalette().getColor(1); }
-    static jt::Color PaletteFontShadow() { return GP::getPalette().getColor(6); }
-    static jt::Color PaletteFontCredits() { return GP::getPalette().getColor(2); }
+    static jt::Color PaletteFontShadow() { return GP::getPalette().getColor(11); }
+    static jt::Color PaletteFontCredits() { return GP::getPalette().getColor(9); }
 
     static jt::Palette getPalette();
 
