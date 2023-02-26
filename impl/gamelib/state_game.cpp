@@ -50,7 +50,9 @@ void StateGame::doInternalUpdate(float const elapsed)
         m_hud->getObserverScoreP1()->notify(m_grid->getPathsCompleted());
     }
 
-    //    m_grid->update(elapsed);
+    if (m_grid->m_endGame) {
+        endGame();
+    }
 
     m_background->update(elapsed);
     m_vignette->update(elapsed);

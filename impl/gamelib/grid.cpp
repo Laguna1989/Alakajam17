@@ -11,7 +11,7 @@
 void Grid::doCreate()
 {
     createTiles();
-    std::cout << m_allColors.size() << std::endl;
+    //    std::cout << m_allColors.size() << std::endl;
     createPrimaryHub();
 
     createSecondaryHub();
@@ -74,12 +74,12 @@ void Grid::createSecondaryHub()
     std::shared_ptr<jt::tilemap::TileNode> hub { nullptr };
     int counter = 0;
     auto randomPrimaryHub
-        = *jt::SystemHelper::select_randomly(m_primaryHubs.begin(), m_primaryHubs.end());
+        = (m_pathsCompleted % 2 == 0) ? getRandomPrimaryHub() : getPrimaryHubWithLeastSecondaries();
     auto selectedColor = randomPrimaryHub->m_riverColor;
     while (true) {
         counter++;
         if (counter >= 200) {
-            getGame()->logger().info("no place for secondary hub found", { "grid" });
+            getGame()->logger().warning("no place for secondary hub found", { "grid" });
             // TODO
             break;
         }
@@ -136,6 +136,9 @@ void Grid::createSecondaryHub()
     }
     hub->m_riverColor = selectedColor;
     m_secondaryHubs.push_back(hub);
+    std::stringstream ss;
+    ss << hub->getNode()->getTilePosition();
+    getGame()->logger().info("create hub at " + ss.str(), { "grid" });
 }
 
 void Grid::doUpdate(float const elapsed)
@@ -143,6 +146,17 @@ void Grid::doUpdate(float const elapsed)
     handleSpawnConnectionInput();
 
     updateCurrentShapeIfSet(elapsed);
+
+    m_spawnTimer += elapsed;
+    float const maxSpawnTime = GetSpawnTime();
+    //    std::cout << m_spawnTimer << " / " << maxSpawnTime << "\n";
+    if (m_spawnTimer >= maxSpawnTime) {
+        //        getGame()->logger().debug(
+        //            "spawn secondary with GetSpawntimer of " + std::to_string(maxSpawnTime), {
+        //            "grid" });
+        m_spawnTimer = 0.0f;
+        createSecondaryHub();
+    }
 
     for (auto& shp : m_shapes) {
         shp->update(elapsed);
@@ -160,11 +174,27 @@ void Grid::doUpdate(float const elapsed)
     for (auto& ph : m_primaryHubs) {
         ph->getDrawable()->setScale(jt::Vector2f { 4.0f, 4.0f });
         ph->getDrawable()->setColor(ph->m_riverColor);
+        auto numberOfUnconnectedSecondaries
+            = getUnconnectedSecondariesForPrimaryHubColor(ph->m_riverColor);
+        if (numberOfUnconnectedSecondaries == 0 || numberOfUnconnectedSecondaries == 1) {
+            ph->m_overflowTimer -= elapsed * 0.5f;
+            if (ph->m_overflowTimer < 0) {
+                ph->m_overflowTimer = 0;
+            }
+        } else {
+            ph->m_overflowTimer += (numberOfUnconnectedSecondaries - 1) * elapsed;
+        }
+
+        ph->m_overflowBar->setCurrentValue(ph->m_overflowTimer);
+        ph->m_overflowBar->update(elapsed);
+        if (ph->m_overflowTimer >= m_maxOverflowTimer) {
+            m_endGame = true;
+        }
     }
 
-    for (auto& ph : m_secondaryHubs) {
-        ph->getDrawable()->setScale(jt::Vector2f { 2.0f, 2.0f });
-        ph->getDrawable()->setColor(ph->m_riverColor);
+    for (auto& sh : m_secondaryHubs) {
+        sh->getDrawable()->setScale(jt::Vector2f { 2.0f, 2.0f });
+        sh->getDrawable()->setColor(sh->m_riverColor);
     }
 
     highlightTileUnderCursor();
@@ -176,6 +206,7 @@ void Grid::doUpdate(float const elapsed)
         switchToNextColor();
     }
 }
+
 void Grid::fadeNodesBasedOnMouseDistance()
 {
     auto const mousePos = getGame()->input().mouse()->getMousePositionWorld();
@@ -191,7 +222,7 @@ void Grid::fadeNodesBasedOnMouseDistance()
             c.a = 0;
         } else {
             auto dist = sqrt(distsq);
-            c.a = 255 * (maxVisibleDistance - dist) / maxVisibleDistance;
+            c.a = static_cast<std::uint8_t>(255 * (maxVisibleDistance - dist) / maxVisibleDistance);
         }
         node->getDrawable()->setColor(c);
     }
@@ -252,7 +283,7 @@ void Grid::handleSpawnConnectionInput()
             std::string endPosString = "("
                 + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().x)) + ", "
                 + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().y)) + ")";
-            getGame()->logger().info(
+            getGame()->logger().verbose(
                 "Try Spawn connection between " + startPosString + " - " + endPosString,
                 { "grid" });
 
@@ -275,7 +306,7 @@ void Grid::spawnConnection()
     std::string endPosString = "("
         + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().x)) + ", "
         + std::to_string(static_cast<int>(m_endNode->getNode()->getTilePosition().y)) + ")";
-    getGame()->logger().info(
+    getGame()->logger().verbose(
         "Spawn connection between " + startPosString + " - " + endPosString, { "grid" });
 
     // create pathfinding connection
@@ -315,21 +346,54 @@ void Grid::checkForCompletedPath()
         if (path.size() == 0) {
             getGame()->logger().verbose("no path found");
         } else {
-            getGame()->logger().info("path completed");
-            pathCompleted();
+            getGame()->logger().verbose("path completed");
             secondary->m_connected = true;
+            pathCompleted();
         }
     }
-}
-std::shared_ptr<jt::tilemap::TileNode> Grid::getCurrentPrimaryHub()
-{
-    return getPrimaryHubForColor(getCurrentSpawnColor());
 }
 
 std::shared_ptr<jt::tilemap::TileNode> Grid::getRandomPrimaryHub()
 {
     return *jt::SystemHelper::select_randomly(m_primaryHubs.begin(), m_primaryHubs.end());
 }
+
+std::shared_ptr<jt::tilemap::TileNode> Grid::getPrimaryHubWithLeastSecondaries()
+{
+    int minimumConnectedSecondaries = 9999999;
+    std::shared_ptr<jt::tilemap::TileNode> primaryWithLeastSecondaries = nullptr;
+    for (auto& primary : m_primaryHubs) {
+        auto primaryHubColor = primary->m_riverColor;
+
+        int secondariesConnectedToThisHub = 0;
+        for (auto& s : m_secondaryHubs) {
+
+            if (s->m_riverColor == primaryHubColor) {
+                secondariesConnectedToThisHub++;
+            }
+        }
+        if (secondariesConnectedToThisHub < minimumConnectedSecondaries) {
+            minimumConnectedSecondaries = secondariesConnectedToThisHub;
+            primaryWithLeastSecondaries = primary;
+        }
+    }
+    return primaryWithLeastSecondaries;
+}
+
+int Grid::getUnconnectedSecondariesForPrimaryHubColor(jt::Color const& c)
+{
+    int sum = 0;
+    for (auto& sh : m_secondaryHubs) {
+        if (sh->m_riverColor != c) {
+            continue;
+        }
+        if (!sh->m_connected) {
+            sum++;
+        }
+    }
+    return sum;
+}
+
 std::shared_ptr<jt::tilemap::TileNode> Grid::getPrimaryHubForColor(jt::Color const& c)
 {
     auto const primary_it = std::find_if(
@@ -345,7 +409,7 @@ void Grid::pathCompleted()
 {
     m_pathsCompleted++;
 
-    if (m_pathsCompleted % 3 == 0) {
+    if (m_pathsCompleted % 4 == 0) {
         switchToNextColor();
         if (m_primaryHubs.size() < m_allColors.size()) {
             createPrimaryHub();
@@ -354,7 +418,7 @@ void Grid::pathCompleted()
     if (m_pathsCompleted % 10 == 0) {
         m_allowedMaxDistanceToPrimaryHub++;
     }
-    createSecondaryHub();
+    m_expectedUnconnectedSecondaryHubs = 1 + m_pathsCompleted / 10;
 }
 
 std::shared_ptr<jt::tilemap::TileNode> Grid::getPossibleEndTile(jt::Vector2f const& pos)
@@ -372,7 +436,6 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getPossibleEndTile(jt::Vector2f con
 
     auto const distX = static_cast<int>(endTilepos.x) - static_cast<int>(startTilepos.x);
     auto const distY = static_cast<int>(endTilepos.y) - static_cast<int>(startTilepos.y);
-    //    std::cout << distX << " " << distY << std::endl;
 
     if (distX < -1 || distX > 1) {
         return nullptr;
@@ -455,6 +518,12 @@ void Grid::doDraw() const
     for (auto& shp : m_shapes) {
         shp->draw(renderTarget());
     }
+
+    for (auto& ph : m_primaryHubs) {
+        if (ph->m_overflowTimer > 0) {
+            ph->m_overflowBar->draw(renderTarget());
+        }
+    }
     if (m_currentShape) {
         m_currentShape->draw(renderTarget());
     }
@@ -496,7 +565,11 @@ void Grid::createTiles()
             node->setPosition(
                 jt::Vector2u { static_cast<unsigned int>(i), static_cast<unsigned int>(j) });
 
-            auto tileNode = std::make_shared<jt::tilemap::TileNode>(drawable, node);
+            auto bar = std::make_shared<jt::Bar>(10.0f, 40.0f, false, textureManager());
+            bar->setPosition(drawable->getPosition() + jt::Vector2f { 30, -10 });
+            // subtract 1 for giving some allowance
+            bar->setMaxValue(m_maxOverflowTimer - 1.0f);
+            auto tileNode = std::make_shared<jt::tilemap::TileNode>(drawable, node, bar);
             m_nodeList.emplace_back(tileNode);
         }
     }
@@ -526,3 +599,16 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getClosestTileTo(jt::Vector2f const
 jt::Color Grid::getCurrentSpawnColor() const { return m_allColors.at(m_currentColorIndex); }
 jt::Color Grid::getCurrentDrawColor() const { return m_currentDrawColor; }
 int Grid::getPathsCompleted() const { return m_pathsCompleted; }
+float Grid::GetSpawnTime()
+{
+    float currentUnconnectedSecondaryHubs = std::count_if(
+        m_secondaryHubs.begin(), m_secondaryHubs.end(), [](auto& sh) { return !sh->m_connected; });
+    float expectedUnconnectedSecondaryHubs = m_expectedUnconnectedSecondaryHubs;
+    float exponent = 1.15f;
+    float ret = (float)(std::pow(
+                    currentUnconnectedSecondaryHubs / expectedUnconnectedSecondaryHubs, exponent))
+            * m_defaultSpawnTimer
+        + 1.0f;
+
+    return ret;
+}

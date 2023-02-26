@@ -23,6 +23,8 @@ public:
 
     int getPathsCompleted() const;
 
+    bool m_endGame { false };
+
 private:
     int const m_mapSizeX = 30;
     int const m_mapSizeY = 20;
@@ -44,9 +46,15 @@ private:
 
     int m_pathsCompleted { 0 };
 
-private:
     int m_allowedMaxDistanceToPrimaryHub { 2 };
     jt::Color m_currentDrawColor;
+
+    float m_maxOverflowTimer { 35.0f };
+
+    float m_spawnTimer { 0.0f };
+    float m_defaultSpawnTimer { 5.0f };
+    int m_expectedUnconnectedSecondaryHubs { 1 };
+    float GetSpawnTime();
 
     void doCreate() override;
     void doUpdate(float const elapsed) override;
@@ -62,8 +70,9 @@ private:
     void checkForCompletedPath();
     void pathCompleted();
 
-    std::shared_ptr<jt::tilemap::TileNode> getCurrentPrimaryHub();
     std::shared_ptr<jt::tilemap::TileNode> getRandomPrimaryHub();
+    std::shared_ptr<jt::tilemap::TileNode> getPrimaryHubWithLeastSecondaries();
+    int getUnconnectedSecondariesForPrimaryHubColor(jt::Color const& c);
     std::shared_ptr<jt::tilemap::TileNode> getPrimaryHubForColor(jt::Color const& c);
 
     void fadeNodesBasedOnMouseDistance();

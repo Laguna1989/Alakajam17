@@ -1,9 +1,10 @@
 #include "tile_node.hpp"
 
 jt::tilemap::TileNode::TileNode(std::shared_ptr<jt::DrawableInterface> drawable,
-    std::shared_ptr<jt::pathfinder::NodeInterface> node)
+    std::shared_ptr<jt::pathfinder::NodeInterface> node, std::shared_ptr<jt::Bar> bar)
     : m_node { node }
     , m_drawable { drawable }
+    , m_overflowBar { bar }
 {
     reset();
 }

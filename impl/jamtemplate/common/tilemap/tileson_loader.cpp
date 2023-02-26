@@ -175,7 +175,7 @@ jt::tilemap::TilesonLoader::loadTileNodesFromLayer(std::string const& layerName,
             = jt::Vector2f { static_cast<float>(ts.x * node->getTilePosition().x),
                   static_cast<float>(ts.y * node->getTilePosition().y) };
         drawable->setPosition(positionInPixel);
-        nodeTiles.emplace_back(std::make_shared<jt::tilemap::TileNode>(drawable, node));
+        //        nodeTiles.emplace_back(std::make_shared<jt::tilemap::TileNode>(drawable, node));
     }
     return nodeTiles;
 }
