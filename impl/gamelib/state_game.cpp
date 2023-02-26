@@ -1,13 +1,18 @@
 ﻿#include "state_game.hpp"
 #include <box2dwrapper/box2d_world_impl.hpp>
 #include <color/color.hpp>
+#include <drawable_helpers.hpp>
 #include <game_interface.hpp>
 #include <game_properties.hpp>
 #include <hud/hud.hpp>
+#include <random/random.hpp>
 #include <screeneffects/vignette.hpp>
 #include <shape.hpp>
 #include <state_menu.hpp>
 #include <tweens/tween_alpha.hpp>
+#include <tweens/tween_base.hpp>
+#include <tweens/tween_color.hpp>
+#include <tweens/tween_scale.hpp>
 
 void StateGame::doInternalCreate()
 {
@@ -26,6 +31,48 @@ void StateGame::doInternalCreate()
 
     createGrid();
 
+    m_spawnParticles = jt::ParticleSystem<jt::Shape, 100>::createPS(
+        [this]() {
+            auto s = jt::dh::createShapeCircle(5, jt::colors::White, textureManager());
+            s->setOrigin(jt::Vector2f { 5, 5 });
+            s->setPosition(jt::Vector2f { -2000.0f, -2000.0f });
+            s->setScale(jt::Vector2f { 0.5f, 0.5f });
+            return s;
+        },
+        [this](auto s, auto pos) {
+            auto startPosition
+                = jt::Random::getRandomPointIn(jt::Rectf { pos.x - 5, pos.y - 5, 10, 10 });
+            s->setPosition(startPosition);
+            s->setColor(jt::colors::White);
+            s->setScale(jt::Vector2f { 0.1f, 0.1f });
+
+            jt::TweenColor::Sptr twcl
+                = jt::TweenColor::create(s, 0.3f, jt::colors::White, this->m_particleColor);
+            twcl->setStartDelay(0.5f);
+            twcl->setSkipFrames(1);
+            add(twcl);
+
+            jt::TweenAlpha::Sptr twaIn = jt::TweenAlpha::create(s, 0.1f, 0, 255);
+            twaIn->setSkipFrames(1);
+            add(twaIn);
+
+            jt::TweenAlpha::Sptr twaOut = jt::TweenAlpha::create(s, 0.9f - 0.25f, 255, 0);
+            twaOut->setSkipFrames(1);
+            twaOut->setStartDelay(0.25f);
+            add(twaOut);
+
+            auto tws = jt::TweenScale::create(
+                s, 0.9f - 0.1f, jt::Vector2f { 0.1f, 0.1f }, jt::Vector2f { 2.0f, 2.0f });
+            tws->setSkipFrames(1);
+            tws->setStartDelay(0.1f);
+            add(tws);
+        });
+    add(m_spawnParticles);
+
+    m_grid->setSpawnParticlesCallback([this](jt::Vector2f const& pos, jt::Color const& c) {
+        m_particleColor = c;
+        m_spawnParticles->fire(5, pos);
+    });
     m_vignette = std::make_shared<jt::Vignette>(GP::GetScreenSize());
     add(m_vignette);
     m_hud = std::make_shared<Hud>();
@@ -64,7 +111,7 @@ void StateGame::doInternalDraw() const
     m_background->draw(renderTarget());
     drawObjects();
     m_grid->draw();
-
+    m_spawnParticles->draw();
     m_vignette->draw();
     m_hud->draw();
 }

@@ -24,6 +24,8 @@ public:
     int getPathsCompleted() const;
 
     bool m_endGame { false };
+    void setSpawnParticlesCallback(
+        std::function<void(jt::Vector2f const& pos, jt::Color const& col)> func);
 
 private:
     int const m_mapSizeX = 30;
@@ -32,6 +34,8 @@ private:
     std::shared_ptr<jt::Shape> m_currentShape { nullptr };
     std::shared_ptr<jt::tilemap::TileNode> m_startNode { nullptr };
     std::shared_ptr<jt::tilemap::TileNode> m_endNode { nullptr };
+
+    std::function<void(jt::Vector2f const& pos, jt::Color const& col)> m_particleFunc;
 
     std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_nodeList {};
 
@@ -52,7 +56,7 @@ private:
     float m_maxOverflowTimer { 35.0f };
 
     float m_spawnTimer { 0.0f };
-    float m_defaultSpawnTimer { 4.0f };
+    float m_defaultSpawnTimer { 6.0f };
     int m_expectedUnconnectedSecondaryHubs { 1 };
     float GetSpawnTime();
 
