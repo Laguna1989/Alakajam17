@@ -2,6 +2,7 @@
 #define GAME_STATE_MENU_HPP
 
 #include <game_state.hpp>
+#include <screeneffects/wind_particles.hpp>
 
 namespace jt {
 
@@ -29,6 +30,7 @@ private:
     std::shared_ptr<jt::Text> m_textVersion;
 
     std::shared_ptr<jt::Shape> m_overlay;
+    std::shared_ptr<jt::WindParticles> m_wind;
     std::shared_ptr<jt::Vignette> m_vignette;
 
     int m_score { 0 };

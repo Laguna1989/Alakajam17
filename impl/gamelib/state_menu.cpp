@@ -1,4 +1,5 @@
 ﻿#include "state_menu.hpp"
+#include "color/color_factory.hpp"
 #include <build_info.hpp>
 #include <color/color.hpp>
 #include <drawable_helpers.hpp>
@@ -33,6 +34,11 @@ void StateMenu::doInternalCreate()
 
     getGame()->stateManager().setTransition(std::make_shared<jt::StateManagerTransitionFadeToBlack>(
         GP::GetScreenSize(), textureManager()));
+
+    m_wind = std::make_shared<jt::WindParticles>(GP::GetWindowSize(),
+        std::vector<jt::Color> { jt::ColorFactory::fromHexString("#f1f6f0"),
+            jt::ColorFactory::fromHexString("#de9f47"), jt::Color { 255, 255, 255, 100 } });
+    add(m_wind);
 
     if (!getGame()->audio().getPermanentSound("bgm")) {
         auto bgm = getGame()->audio().addPermanentSound("bgm", "assets/sfx/ost.ogg");
@@ -203,6 +209,8 @@ void StateMenu::doInternalUpdate(float const elapsed)
 
 void StateMenu::updateDrawables(const float& elapsed)
 {
+    m_wind->m_windSpeed = 0.75f * (0.25f + 0.2f * sin(0.1f * getAge()));
+
     m_background->update(elapsed);
     m_textTitle->update(elapsed);
     m_textStart->update(elapsed);
@@ -236,11 +244,14 @@ void StateMenu::doInternalDraw() const
 {
     m_background->draw(renderTarget());
 
+    m_wind->draw();
+
     m_textTitle->draw(renderTarget());
     m_textStart->draw(renderTarget());
     m_textExplanation->draw(renderTarget());
     m_textCredits->draw(renderTarget());
     m_textVersion->draw(renderTarget());
+
     m_overlay->draw(renderTarget());
     m_vignette->draw();
 }

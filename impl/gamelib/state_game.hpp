@@ -5,6 +5,7 @@
 #include <box2dwrapper/box2d_world_interface.hpp>
 #include <game_state.hpp>
 #include <grid.hpp>
+#include <screeneffects/wind_particles.hpp>
 #include <vector.hpp>
 #include <memory>
 #include <vector>
@@ -34,8 +35,6 @@ private:
     bool m_running { true };
     bool m_hasEnded { false };
 
-    int m_scoreP1 { 0 };
-
     void doInternalCreate() override;
     void doInternalUpdate(float const elapsed) override;
     void doInternalDraw() const override;
@@ -43,6 +42,8 @@ private:
     void endGame();
     void createGrid();
     void createParticleSystem();
+    std::string m_endText;
+    std::shared_ptr<jt::WindParticles> m_wind;
 };
 
 #endif
