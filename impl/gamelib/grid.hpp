@@ -25,6 +25,7 @@ public:
     int getPathsCompleted() const;
 
     bool m_endGame { false };
+    std::string m_endText;
     void setSpawnParticlesCallback(
         std::function<void(jt::Vector2f const& pos, jt::Color const& col)> func);
 
@@ -41,7 +42,6 @@ private:
     std::vector<std::shared_ptr<jt::tilemap::TileNode>> m_nodeList {};
 
     std::size_t m_currentColorIndex { 0u };
-    // TODO fill this with palette colors
     std::vector<jt::Color> m_allColors { GP::getPalette().getColor(26),
         GP::getPalette().getColor(30), GP::getPalette().getColor(23), GP::getPalette().getColor(5),
         GP::getPalette().getColor(13) };

@@ -33,6 +33,8 @@ public:
 
     float m_overflowTimer = 0.0f;
 
+    float m_wiggleTimer = 0.0f;
+
 private:
     std::shared_ptr<jt::DrawableInterface> m_drawable;
     std::shared_ptr<jt::pathfinder::NodeInterface> m_node;

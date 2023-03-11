@@ -31,6 +31,8 @@ void Grid::createPrimaryHub()
         counter++;
         if (counter >= 200) {
             getGame()->logger().info("no place for primary hub found", { "grid" });
+            m_endGame = true;
+            m_endText = "No place for a water source left";
             break;
         }
         hub = *jt::SystemHelper::select_randomly(m_nodeList.begin(), m_nodeList.end());
@@ -86,6 +88,8 @@ void Grid::createSecondaryHub()
         if (counter >= 200) {
             getGame()->logger().warning("no place for secondary hub found", { "grid" });
             hub = nullptr;
+            m_endGame = true;
+            m_endText = "No place for any cities left";
             break;
         }
         hub = *jt::SystemHelper::select_randomly(m_nodeList.begin(), m_nodeList.end());
@@ -198,6 +202,11 @@ void Grid::doUpdate(float const elapsed)
             ph->m_overflowTimer += (numberOfUnconnectedSecondaries - 1) * elapsed;
             if (ph->m_overflowTimer >= 0.6f * m_maxOverflowTimer) {
                 ph->m_overflowBar->setFrontColor(jt::colors::Red);
+                ph->m_wiggleTimer -= elapsed;
+                if (ph->m_wiggleTimer <= 0.0f) {
+                    ph->m_wiggleTimer = 1.0f;
+                    ph->m_overflowBar->shake(0.25f, 3.0f, 0.01f);
+                }
 
             } else {
                 ph->m_overflowBar->setFrontColor(jt::colors::White);
@@ -209,6 +218,7 @@ void Grid::doUpdate(float const elapsed)
 
         if (ph->m_overflowTimer >= m_maxOverflowTimer) {
             m_endGame = true;
+            m_endText = "River overflow";
         }
     }
 
@@ -433,7 +443,8 @@ std::shared_ptr<jt::tilemap::TileNode> Grid::getPrimaryHubForColor(jt::Color con
     auto const primary_it = std::find_if(
         m_primaryHubs.begin(), m_primaryHubs.end(), [&c](auto t) { return t->m_riverColor == c; });
     if (primary_it == m_primaryHubs.end()) {
-        throw std::invalid_argument { "no primary hub found" };
+        m_endGame = true;
+        m_endText = "No place for a water source left";
     }
     auto const primary = *primary_it;
     return primary;

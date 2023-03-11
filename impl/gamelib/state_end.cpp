@@ -20,7 +20,7 @@ void StateEnd::doInternalCreate()
 
     m_wind = std::make_shared<jt::WindParticles>(GP::GetWindowSize(),
         std::vector<jt::Color> { jt::ColorFactory::fromHexString("#f1f6f0"),
-            jt::ColorFactory::fromHexString("##de9f47"), jt::Color { 255, 255, 255, 100 } });
+            jt::ColorFactory::fromHexString("#de9f47"), jt::Color { 255, 255, 255, 100 } });
     add(m_wind);
 }
 

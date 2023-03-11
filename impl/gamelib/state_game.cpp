@@ -124,7 +124,11 @@ void StateGame::doInternalUpdate(float const elapsed)
     }
 
     if (m_grid->m_endGame) {
-        m_endText = "River overflow";
+        if (m_grid->m_endText.empty()) {
+            m_endText = "River overflow";
+        } else {
+            m_endText = m_grid->m_endText;
+        }
         endGame();
     }
     if (getGame()->input().keyboard()->pressed(jt::KeyCode::LShift)
