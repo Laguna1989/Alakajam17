@@ -72,7 +72,7 @@ void StateGame::createParticleSystem()
             auto twpos = jt::TweenPosition::create(s, 0.55f, startPosition, endPosition);
             add(twpos);
 
-            jt::TweenAlpha::Sptr twaIn = jt::TweenAlpha::create(s, 0.4f, 0u, 255u);
+            jt::TweenAlpha::Sptr twaIn = jt::TweenAlpha::create(s, 1.0f, 0u, 255u);
             twaIn->setSkipFrames(1);
             twaIn->addCompleteCallback([this, s]() {
                 jt::TweenAlpha::Sptr twaOut = jt::TweenAlpha::create(s, 0.9f - 0.25f, 255, 0);
