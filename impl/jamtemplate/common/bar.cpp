@@ -84,8 +84,7 @@ void jt::Bar::doUpdate(float elapsed)
     float const value = static_cast<float>(m_valueCurrent) / m_valueMax;
     auto const scaleFullShape = m_shapeFull->getScale();
 
-    auto const basePosition = m_position + getShakeOffset() + getOffset();
-    m_shapeFull->setPosition(basePosition);
+    m_shapeFull->setPosition(m_position + getShakeOffset() + getOffset());
 
     if (m_horizontal) {
         m_shapeProgress->setScale(jt::Vector2f { value * scaleFullShape.x, scaleFullShape.y });
