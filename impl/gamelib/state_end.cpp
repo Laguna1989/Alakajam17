@@ -11,7 +11,7 @@ void StateEnd::doInternalCreate()
         = jt::dh::createShapeRect(GP::GetScreenSize(), GP::PaletteBackground(), textureManager());
 
     m_text = jt::dh::createText(renderTarget(), GP::ExplanationText(), 16U, GP::PaletteFontFront());
-    m_text->setText(m_endText + "Time: " + std::to_string(m_time)
+    m_text->setText(m_endText + "\nTime: " + std::to_string(m_time)
         + "s\nConnected Cities: " + std::to_string(m_connections));
     m_text->setTextAlign(jt::Text::TextAlign::CENTER);
     m_text->setPosition(GP::GetScreenSize() * 0.5f + jt::Vector2f { 0.0f, -20.0f });
